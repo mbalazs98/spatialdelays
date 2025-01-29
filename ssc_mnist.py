@@ -4,10 +4,10 @@ import numpy as np
 
 
 from ml_genn import Connection, Network, Population
-from ml_genn.callbacks import SpikeRecorder, Callback, Checkpoint
+from ml_genn.callbacks import SpikeRecorder, Callback, Checkpoint, VarRecorder
 from ml_genn.compilers import EventPropCompiler
 from ml_genn.connectivity import Dense, FixedProbability
-from ml_genn.initializers import Normal
+from ml_genn.initializers import Normal, Uniform
 from ml_genn.neurons import LeakyIntegrate, LeakyIntegrateFire, SpikeInput
 from ml_genn.optimisers import Adam
 from ml_genn.serialisers import Numpy
@@ -15,9 +15,14 @@ from ml_genn.synapses import Exponential
 
 
 from ml_genn.compilers.event_prop_compiler import default_params
-from ml_genn.utils.data import (calc_latest_spike_time, calc_max_spikes,
-                                preprocess_tonic_spikes)
+from ml_genn.utils.data import preprocess_tonic_spikes
 from argparse import ArgumentParser
+
+
+BATCH_SIZE = 256 
+NUM_INPUT = 700 + 784
+NUM_HIDDEN = 256
+NUM_OUTPUT = 10
 
 
 class EaseInSchedule(Callback):
@@ -75,7 +80,7 @@ labels_mnist_train = mnist.train_labels()
 spikes_mnist_train = linear_latency_encode_data(
     mnist.train_images(),
     EXAMPLE_TIME - (2.0 * DT), 2.0 * DT)
-labels_mnist_test = mnist.train_labels()
+labels_mnist_test = mnist.test_labels()
 spikes_mnist_test = linear_latency_encode_data(
     mnist.test_images(),
     EXAMPLE_TIME - (2.0 * DT), 2.0 * DT)
@@ -90,8 +95,6 @@ labels_ssc_train = []
 for i, data in enumerate(dataset):
     events, label = data
     if label < 10:
-        events = np.delete(events, np.where(events["t"] >= 1000000))
-
         # Add raw events and label to list
 
         spikes_ssc_train.append(events)
@@ -102,15 +105,11 @@ for i, data in enumerate(dataset):
         latest_spike_time = max(latest_spike_time, np.amax(events["t"]) / 1000.0)
 
 dataset = SSC(save_to="../data", split="test")
-max_spikes = 0
-latest_spike_time = 0
 spikes_ssc_test = []
 labels_ssc_test = []
 for i, data in enumerate(dataset):
     events, label = data
     if label < 10:
-        events = np.delete(events, np.where(events["t"] >= 1000000))
-
         # Add raw events and label to list
 
         spikes_ssc_test.append(events)
@@ -163,7 +162,7 @@ NUM_OUTPUT = 10
 network = Network(default_params)
 with network:
     # Populations
-    input = Population(SpikeInput(max_spikes=BATCH_SIZE * max_spikes),
+    input = Population(SpikeInput(max_spikes= BATCH_SIZE * (784 + max_spikes)),
                        NUM_INPUT)
     hidden1 = Population(LeakyIntegrateFire(v_thresh=1.0, tau_mem=20.0,
                                            tau_refrac=None),
@@ -175,88 +174,88 @@ with network:
                         NUM_OUTPUT)
 
     # Connections
-    #need to zero out connections from other module
-    input_hidden1 = Connection(input, hidden1, Dense(Normal(mean=0.03, sd=0.01)),
+    input_hidden1 = Connection(input, hidden1, FixedProbability(p=0.5, weight=Normal(mean=0.03, sd=0.01)),
                Exponential(5.0))
-    #need to zero out connections from other module
-    input_hidden2 = Connection(input, hidden2, Dense(Normal(mean=0.078, sd=0.045)),
+    pre_ind, post_ind = np.meshgrid(np.arange(700), np.arange(256))
+
+    # Flatten the arrays to get 1D arrays of all pairs
+    pre_ind = pre_ind.flatten()  # Length will be 700 * 512
+    post_ind = post_ind.flatten()  # Length will be 700 * 512
+    input_hidden1.connectivity.pre_ind = pre_ind
+    input_hidden1.connectivity.post_ind = post_ind
+    
+    input_hidden2 = Connection(input, hidden2, FixedProbability(p=0.5, weight=Normal(mean=0.078, sd=0.045)),
                Exponential(5.0))
+
+    pre_ind, post_ind = np.meshgrid(np.arange(700,1484), np.arange(256))
+    pre_ind = pre_ind.flatten()  # Length will be 700 * 256
+    post_ind = post_ind.flatten()  # Length will be 700 * 256
+    input_hidden2.connectivity.pre_ind = pre_ind
+    input_hidden2.connectivity.post_ind = post_ind
+
+    
     hidden1_hidden1 = Connection(hidden1, hidden1, Dense(Normal(mean=0.0, sd=0.02)),
                Exponential(5.0))
     hidden2_hidden2 = Connection(hidden2, hidden2, Dense(Normal(mean=0.0, sd=0.02)),
                Exponential(5.0))
-    hidden1_hidden2 = Connection(hidden1, hidden2, FixedProbability(p=0.1, weight=Normal(mean=0.0, sd=0.02)),
-               Exponential(5.0))
-    hidden2_hidden1 = Connection(hidden1, hidden2, FixedProbability(p=0.1, weight=Normal(mean=0.0, sd=0.02)),
-               Exponential(5.0))
+    hidden1_hidden2 = Connection(hidden1, hidden2, FixedProbability(p=0.01, weight=Normal(mean=0.0, sd=0.02), delay=Uniform(0,0)),
+               Exponential(5.0), max_delay_steps=1000)
+    hidden2_hidden1 = Connection(hidden2, hidden1, FixedProbability(p=0.01, weight=Normal(mean=0.0, sd=0.02), delay=Uniform(0,0)),
+               Exponential(5.0), max_delay_steps=1000)
     hidden1_output = Connection(hidden1, output, Dense(Normal(mean=0.0, sd=0.03)),
                Exponential(5.0))
-    hidden2_output = Connection(hidden2, output, Dense(Normal(mean=0.2, sd=0.37)),
+    hidden2_output = Connection(hidden2, output, Dense(Normal(mean=0.007, sd=0.73)),
                Exponential(5.0))
+
+k_reg = {}
+
+k_reg[hidden1] = 5e-11
+k_reg[hidden2] = 1e-20
+
 
 max_example_timesteps = int(np.ceil(latest_spike_time / DT))
 serialiser = Numpy("checkpoints_" + "ssc_mnist")
 compiler = EventPropCompiler(example_timesteps=max_example_timesteps,
                                 losses="sparse_categorical_crossentropy",
-                                reg_lambda_upper=5e-11, reg_lambda_lower=5e-11, 
+                                reg_lambda_upper=k_reg, reg_lambda_lower=k_reg, 
                                 reg_nu_upper=14, max_spikes=1500,
-                                optimiser=Adam(0.001 * 0.01),
+                                delay_learn_conns=[hidden1_hidden2,hidden2_hidden1],
+                                optimiser=Adam(0.001 * 0.01), delay_optimiser=Adam(0.1),
                                 batch_size=BATCH_SIZE, rng_seed=0)
 
 compiled_net = compiler.compile(network)
 
+# Apply augmentation to events and preprocess
+merged_spikes, merged_labels = merge_paired_spikes(spikes_ssc_train, spikes_mnist_train, labels_ssc_train, labels_mnist_train)
+spikes_train = []
+labels_train = []
+for events, label in zip(merged_spikes, merged_labels):
+    spikes_train.append(preprocess_tonic_spikes(events, ('t', 'x', 'p'),
+                                            (1484, 1, 1)))
+    labels_train.append(label)
+
+merged_spikes, merged_labels = merge_paired_spikes(spikes_ssc_test, spikes_mnist_test, labels_ssc_test, labels_mnist_test)
+spikes_test = []
+labels_test = []
+for events, label in zip(merged_spikes, merged_labels):
+    spikes_test.append(preprocess_tonic_spikes(events, ('t', 'x', 'p'),
+                                            (1484, 1, 1)))
+    labels_test.append(label)
+
 with compiled_net:
     # Loop through epochs
-    callbacks = [SpikeRecorder(hidden1, key="hidden1_spikes", record_counts=True), SpikeRecorder(hidden2, key="hidden2_spikes", record_counts=True), EaseInSchedule(), Checkpoint(serialiser)]
-    validation_callbacks = []
+    callbacks = ["batch_progress_bar",  SpikeRecorder(hidden2, key="hidden2_spikes", record_counts=True), SpikeRecorder(hidden1, key="hidden1_spikes", record_counts=True), EaseInSchedule(), Checkpoint(serialiser)]
+    validation_callbacks = ["batch_progress_bar"]
     best_e, best_acc = 0, 0
     early_stop = 15
-    for e in range(200):
-        # Apply augmentation to events and preprocess
-        merged_spikes, merged_labels = merge_paired_spikes(spikes_mnist_train, spikes_ssc_train, labels_mnist_train, labels_ssc_train)
-        spikes_train = []
-        labels_train = []
-        for events, label in zip(merged_spikes, merged_labels):
-            spikes_train.append(preprocess_tonic_spikes(events, ('t', 'x', 'p'),
-                                                    (1484, 1, 1)))
-            labels_train.append(label)
+    for e in range(500):
         
-        merged_spikes, merged_labels = merge_paired_spikes(spikes_mnist_test, spikes_ssc_test, labels_mnist_test, labels_ssc_test)
-        spikes_test = []
-        labels_test = []
-        for events, label in zip(merged_spikes, merged_labels):
-            spikes_test.append(preprocess_tonic_spikes(events, ('t', 'x', 'p'),
-                                                    (1484, 1, 1)))
-            labels_test.append(label)
         # Train epoch
         train_metrics, valid_metrics, train_cb, valid_cb  = compiled_net.train({input: spikes_train},
                                             {output: labels_train},
                                             start_epoch=e, num_epochs=1, 
                                             shuffle=True, callbacks=callbacks, validation_callbacks=validation_callbacks, validation_x={input: spikes_test}, validation_y={output: labels_test})
 
-        
-        
-        hidden1_spikes = np.zeros(NUM_HIDDEN)
-        for cb_d in train_cb['hidden1_spikes']:
-            hidden1_spikes += cb_d
-
-        
-        _input_hidden1 = compiled_net.connection_populations[input_hidden1]
-        _input_hidden1.vars["g"].pull_from_device()
-        g_view = _input_hidden1.vars["g"].view.reshape((1484, NUM_HIDDEN))
-        g_view[:700,hidden1_spikes==0] += 0.002
-        _input_hidden1.vars["g"].push_to_device()
-
-        hidden2_spikes = np.zeros(NUM_HIDDEN)
-        for cb_d in train_cb['hidden2_spikes']:
-            hidden2_spikes += cb_d
-
-        
-        _input_hidden2 = compiled_net.connection_populations[input_hidden2]
-        _input_hidden2.vars["g"].pull_from_device()
-        g_view = _input_hidden2.vars["g"].view.reshape((1484, NUM_HIDDEN))
-        g_view[:700,hidden2_spikes==0] += 0.002
-        _input_hidden2.vars["g"].push_to_device()
 
         
 
