@@ -17,12 +17,25 @@ from ml_genn.synapses import Exponential
 from ml_genn.compilers.event_prop_compiler import default_params
 from ml_genn.utils.data import preprocess_tonic_spikes
 from argparse import ArgumentParser
+#from callbacks import CSVLog
+
+parser = ArgumentParser()
+parser.add_argument("--num_hidden", type=int, default=256, help="Number of hidden neurons")
+parser.add_argument("--sparsity", type=float, default=0.1, help="Sparsity of connections")
+parser.add_argument("--delay_init", type=float, default=0, help="Initialise delays with this maximum value")
+parser.add_argument("--delay_within", type=int, default=1, help="Initialise delays with this maximum value")
+args = parser.parse_args()
 
 
-BATCH_SIZE = 256 
+unique_suffix = "_".join(("_".join(str(i) for i in val) if isinstance(val, list) 
+                         else str(val))
+                         for arg, val in vars(args).items() if not arg.startswith("__"))
+
+BATCH_SIZE = 32 
 NUM_INPUT = 700 + 784
-NUM_HIDDEN = 256
-NUM_OUTPUT = 10
+NUM_HIDDEN = args.num_hidden
+#NUM_OUTPUT = 10
+NUM_OUTPUT = 20
 
 
 class EaseInSchedule(Callback):
@@ -36,7 +49,6 @@ class EaseInSchedule(Callback):
             self._optimiser.alpha = (self._optimiser.alpha) * (1.05 ** batch)
         else:
             self._optimiser.alpha = 0.001
-
 
 def linear_latency_encode_data(data: np.ndarray, max_time: float,
                                min_time: float = 0.0,
@@ -76,18 +88,18 @@ def linear_latency_encode_data(data: np.ndarray, max_time: float,
 EXAMPLE_TIME = 20.0
 DT = 1.0
 mnist.datasets_url = "https://storage.googleapis.com/cvdf-datasets/mnist/"
-labels_mnist_train = mnist.train_labels()
+labels_mnist_train = mnist.train_labels() + 10
 spikes_mnist_train = linear_latency_encode_data(
     mnist.train_images(),
     EXAMPLE_TIME - (2.0 * DT), 2.0 * DT)
-labels_mnist_test = mnist.test_labels()
+
+labels_mnist_test = mnist.test_labels() + 10
 spikes_mnist_test = linear_latency_encode_data(
     mnist.test_images(),
     EXAMPLE_TIME - (2.0 * DT), 2.0 * DT)
 
 
 dataset = SSC(save_to="../data", split="train")
-print(dataset.ordering, dataset.sensor_size)
 max_spikes = 0
 latest_spike_time = 0
 spikes_ssc_train = []
@@ -135,6 +147,7 @@ def merge_paired_spikes(spikes1, spikes2, labels1, labels2):
     # Merge the paired dictionaries
     merged_spikes = []
     merged_labels = []
+
     for s1, s2, l1, l2 in zip(paired_spikes1, paired_spikes2, paired_labels1, paired_labels2):
         merged_spike = np.zeros(len(s1) + len(s2), dtype=s1.dtype)
         
@@ -147,7 +160,6 @@ def merge_paired_spikes(spikes1, spikes2, labels1, labels2):
         merged_spikes.append(merged_spike)
         sigma = (l1 + l2) % 2
         merged_labels.append(sigma * l1 + (1-sigma) * l2)
-    
     # Sort merged spikes by time 't'
     #merged_spikes.sort(key=lambda x: x['t'])
     
@@ -155,10 +167,6 @@ def merge_paired_spikes(spikes1, spikes2, labels1, labels2):
 
 
 
-BATCH_SIZE = 256 
-NUM_INPUT = 700 + 784
-NUM_HIDDEN = 256
-NUM_OUTPUT = 10
 network = Network(default_params)
 with network:
     # Populations
@@ -169,59 +177,94 @@ with network:
                         NUM_HIDDEN, record_spikes=True)
     hidden2 = Population(LeakyIntegrateFire(v_thresh=1.0, tau_mem=20.0,
                                            tau_refrac=None),
-                        NUM_HIDDEN, record_spikes=True)
+                        NUM_HIDDEN//4, record_spikes=True)
     output = Population(LeakyIntegrate(tau_mem=20.0, readout="avg_var_exp_weight"),
                         NUM_OUTPUT)
 
     # Connections
-    input_hidden1 = Connection(input, hidden1, FixedProbability(p=0.5, weight=Normal(mean=0.03, sd=0.01)),
+    input_hidden1 = Connection(input, hidden1, FixedProbability(p=700/1484, weight=Normal(mean=0.03, sd=0.01)),
                Exponential(5.0))
-    pre_ind, post_ind = np.meshgrid(np.arange(700), np.arange(256))
+    pre_ind_ssc, post_ind_ssc = np.meshgrid(np.arange(700), np.arange(NUM_HIDDEN))
 
     # Flatten the arrays to get 1D arrays of all pairs
-    pre_ind = pre_ind.flatten()  # Length will be 700 * 512
-    post_ind = post_ind.flatten()  # Length will be 700 * 512
-    input_hidden1.connectivity.pre_ind = pre_ind
-    input_hidden1.connectivity.post_ind = post_ind
+    pre_ind_ssc = pre_ind_ssc.flatten()  # Length will be 700 * 512
+    post_ind_ssc = post_ind_ssc.flatten()  # Length will be 700 * 512
     
-    input_hidden2 = Connection(input, hidden2, FixedProbability(p=0.5, weight=Normal(mean=0.078, sd=0.045)),
+    input_hidden1.connectivity.pre_ind = pre_ind_ssc
+    input_hidden1.connectivity.post_ind = post_ind_ssc
+    #need to zero out connections from other module
+    
+    input_hidden2 = Connection(input, hidden2, FixedProbability(p=784/1484, weight=Normal(mean=0.078, sd=0.045)),
                Exponential(5.0))
 
-    pre_ind, post_ind = np.meshgrid(np.arange(700,1484), np.arange(256))
-    pre_ind = pre_ind.flatten()  # Length will be 700 * 256
-    post_ind = post_ind.flatten()  # Length will be 700 * 256
-    input_hidden2.connectivity.pre_ind = pre_ind
-    input_hidden2.connectivity.post_ind = post_ind
+    pre_ind_mnist, post_ind_mnist = np.meshgrid(np.arange(700,1484), np.arange(NUM_HIDDEN//4))
+    pre_ind_mnist = pre_ind_mnist.flatten()  # Length will be 700 * 256
+    post_ind_mnist = post_ind_mnist.flatten()  # Length will be 700 * 256
+    input_hidden2.connectivity.pre_ind = pre_ind_mnist
+    input_hidden2.connectivity.post_ind = post_ind_mnist
 
     
-    hidden1_hidden1 = Connection(hidden1, hidden1, Dense(Normal(mean=0.0, sd=0.02)),
-               Exponential(5.0))
-    hidden2_hidden2 = Connection(hidden2, hidden2, Dense(Normal(mean=0.0, sd=0.02)),
-               Exponential(5.0))
-    hidden1_hidden2 = Connection(hidden1, hidden2, FixedProbability(p=0.01, weight=Normal(mean=0.0, sd=0.02), delay=Uniform(0,0)),
+    hidden1_hidden1 = Connection(hidden1, hidden1, Dense(Normal(mean=0.0, sd=0.02), delay=Uniform(0,0)),
                Exponential(5.0), max_delay_steps=1000)
-    hidden2_hidden1 = Connection(hidden2, hidden1, FixedProbability(p=0.01, weight=Normal(mean=0.0, sd=0.02), delay=Uniform(0,0)),
+    
+    hidden2_hidden2 = Connection(hidden2, hidden2, Dense(Normal(mean=0.0, sd=0.02), delay=Uniform(0,0)),
                Exponential(5.0), max_delay_steps=1000)
+    
+    '''if args.sparsity != 1.0:
+        hidden1_hidden2 = Connection(hidden1, hidden2, FixedProbability(p=args.sparsity, weight=Normal(mean=0.0, sd=0.02), delay=Uniform(0,args.delay_init)),
+                Exponential(5.0), max_delay_steps=1000)
+        hidden2_hidden1 = Connection(hidden2, hidden1, FixedProbability(p=args.sparsity, weight=Normal(mean=0.0, sd=0.02), delay=Uniform(0,args.delay_init)),
+                Exponential(5.0), max_delay_steps=1000)
+    else:
+        hidden1_hidden2 = Connection(hidden1, hidden2, Dense(Normal(mean=0.0, sd=0.02), delay=Uniform(0,args.delay_init)),
+                Exponential(5.0), max_delay_steps=1000)
+        hidden2_hidden1 = Connection(hidden2, hidden1, Dense(Normal(mean=0.0, sd=0.02), delay=Uniform(0,args.delay_init)),
+                Exponential(5.0), max_delay_steps=1000)
     hidden1_output = Connection(hidden1, output, Dense(Normal(mean=0.0, sd=0.03)),
                Exponential(5.0))
+    
     hidden2_output = Connection(hidden2, output, Dense(Normal(mean=0.007, sd=0.73)),
+               Exponential(5.0))'''
+    
+
+    hidden1_output = Connection(hidden1, output, FixedProbability(p=0.5, weight=Normal(mean=0.0, sd=0.03)),
+               Exponential(5.0))
+    pre_ind_ssc_out, post_ind_ssc_out = np.meshgrid(np.arange(NUM_HIDDEN), np.arange(10))
+
+    # Flatten the arrays to get 1D arrays of all pairs
+    pre_ind_ssc_out = pre_ind_ssc_out.flatten() 
+    post_ind_ssc_out = post_ind_ssc_out.flatten()  
+    hidden1_output.connectivity.pre_ind = pre_ind_ssc_out
+    hidden1_output.connectivity.post_ind = post_ind_ssc_out
+    #need to zero out connections from other module
+    
+    hidden2_output = Connection(hidden2, output, FixedProbability(p=0.5, weight=Normal(mean=0.007, sd=0.73)),
                Exponential(5.0))
 
+    pre_ind_mnist_out, post_ind_mnist_out = np.meshgrid(np.arange(NUM_HIDDEN//4), np.arange(10,20))
+    pre_ind_mnist_out = pre_ind_mnist_out.flatten()
+    post_ind_mnist_out = post_ind_mnist_out.flatten()
+    input_hidden2.connectivity.pre_ind = pre_ind_mnist_out
+    input_hidden2.connectivity.post_ind = post_ind_mnist_out
+    
 k_reg = {}
 
 k_reg[hidden1] = 5e-11
 k_reg[hidden2] = 1e-20
 
+'''delay_learn_conns = [hidden1_hidden2,hidden2_hidden1]
+if bool(args.delay_within):
+    delay_learn_conns.append(hidden1_hidden1, hidden2_hidden2)'''
 
 max_example_timesteps = int(np.ceil(latest_spike_time / DT))
-serialiser = Numpy("checkpoints_" + "ssc_mnist")
+serialiser = Numpy("checkpoints_" + unique_suffix)
 compiler = EventPropCompiler(example_timesteps=max_example_timesteps,
                                 losses="sparse_categorical_crossentropy",
                                 reg_lambda_upper=k_reg, reg_lambda_lower=k_reg, 
-                                reg_nu_upper=14, max_spikes=1500,
-                                delay_learn_conns=[hidden1_hidden2,hidden2_hidden1],
+                                reg_nu_upper=10, max_spikes=1500,
+                                delay_learn_conns=[],#delay_learn_conns,
                                 optimiser=Adam(0.001 * 0.01), delay_optimiser=Adam(0.1),
-                                batch_size=BATCH_SIZE, rng_seed=0)
+                                batch_size=BATCH_SIZE, rng_seed=0, distance_cost=0.0)
 
 compiled_net = compiler.compile(network)
 
@@ -244,7 +287,7 @@ for events, label in zip(merged_spikes, merged_labels):
 
 with compiled_net:
     # Loop through epochs
-    callbacks = ["batch_progress_bar",  SpikeRecorder(hidden2, key="hidden2_spikes", record_counts=True), SpikeRecorder(hidden1, key="hidden1_spikes", record_counts=True), EaseInSchedule(), Checkpoint(serialiser)]
+    callbacks = ["batch_progress_bar", SpikeRecorder(hidden1, key="hidden1_spikes", record_counts=True), SpikeRecorder(hidden2, key="hidden2_spikes", record_counts=True), EaseInSchedule(), Checkpoint(serialiser)]
     validation_callbacks = ["batch_progress_bar"]
     best_e, best_acc = 0, 0
     early_stop = 15
@@ -256,17 +299,38 @@ with compiled_net:
                                             start_epoch=e, num_epochs=1, 
                                             shuffle=True, callbacks=callbacks, validation_callbacks=validation_callbacks, validation_x={input: spikes_test}, validation_y={output: labels_test})
 
+        
+        
+        hidden1_spikes = np.zeros(NUM_HIDDEN)
+        for cb_d in train_cb['hidden1_spikes']:
+            hidden1_spikes += cb_d
+        
+        _input_hidden1 = compiled_net.connection_populations[input_hidden1]
+        _input_hidden1.vars["g"].pull_from_device()
+        g_values = _input_hidden1.vars["g"].values.reshape(700, NUM_HIDDEN)
+        g_values[:, hidden1_spikes == 0] += 0.002
+        g_values.ravel()
+        _input_hidden1.vars["g"].push_to_device()
+        
+        hidden2_spikes = np.zeros(NUM_HIDDEN//4)
+        for cb_d in train_cb['hidden2_spikes']:
+            hidden2_spikes += cb_d
+
+        _input_hidden2 = compiled_net.connection_populations[input_hidden2]
+        _input_hidden2.vars["g"].pull_from_device()
+        g_values = _input_hidden2.vars["g"].values.reshape(784, NUM_HIDDEN//4)
+        g_values[:, hidden2_spikes == 0] += 0.002
+        g_values.ravel()
+        _input_hidden2.vars["g"].push_to_device()
+        print("silent in first: ", 256-np.count_nonzero(hidden1_spikes), "silent in second: ", NUM_HIDDEN//4-np.count_nonzero(hidden2_spikes))
 
         
 
         if train_metrics[output].result > best_acc:
             best_acc = train_metrics[output].result
             best_e = e
-            print(e, best_acc)
             early_stop = 15
         else:
             early_stop -= 1
             if early_stop < 0:
                 break
-
-    
