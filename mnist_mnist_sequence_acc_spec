@@ -3,7 +3,7 @@ import numpy as np
 from collections import namedtuple
 
 from ml_genn import Connection, Network, Population
-from ml_genn.callbacks import SpikeRecorder, Callback, Checkpoint, VarRecorder
+from ml_genn.callbacks import SpikeRecorder, Callback, VarRecorder
 from ml_genn.compilers import EventPropCompiler
 from ml_genn.connectivity import Dense, FixedProbability
 from ml_genn.initializers import Normal, Uniform
@@ -19,6 +19,8 @@ from argparse import ArgumentParser
 
 import os
 import shutil
+
+import json
 
 
 PreprocessedSpikes = namedtuple("PreprocessedSpikes", ["end_spikes", "spike_times"])
@@ -197,8 +199,10 @@ if args.delays_within:
     delay_learn_conns.append(hidden_2_hidden_2)
 
 max_example_timesteps = int(np.ceil(EXAMPLE_TIME / DT)) +  100
-
-shutil.rmtree("checkpoints_mnist_sequence_" + unique_suffix)
+try:
+    shutil.rmtree("checkpoints_mnist_sequence_" + unique_suffix)
+except FileNotFoundError:
+    pass
 serialiser = Numpy("checkpoints_mnist_sequence_" + unique_suffix)
 compiler = EventPropCompiler(example_timesteps=max_example_timesteps,
                                 losses="sparse_categorical_crossentropy",
@@ -220,9 +224,9 @@ results_dic = {}
 
 with compiled_net:
     # Loop through epochs
-    callbacks = [SpikeRecorder(hidden_1, key="hidden_1_spikes", record_counts=True), SpikeRecorder(hidden_2, key="hidden_2_spikes", record_counts=True), EaseInSchedule(), Checkpoint(serialiser)]
+    callbacks = [SpikeRecorder(hidden_1, key="hidden_1_spikes", record_counts=True), SpikeRecorder(hidden_2, key="hidden_2_spikes", record_counts=True), EaseInSchedule()]
     validation_callbacks = []
-    best_e, best_acc = 0, 0
+    best_acc = 0
     early_stop = 15
 
     for e in range(500):
@@ -261,16 +265,18 @@ with compiled_net:
         
         if train_metrics[output].result > best_acc:
             best_acc = train_metrics[output].result
-            best_e = e
             early_stop = 15
             results_dic["accuracy"] = valid_metrics[output].result
-
+            for filename in os.listdir("checkpoints_mnist_sequence_" + unique_suffix):
+                os.unlink(os.path.join("checkpoints_mnist_sequence_" + unique_suffix, filename))
+            compiled_net.save(("best",), serialiser)
+            compiled_net.save_connectivity(("best",), serialiser)
         else:
             early_stop -= 1
             if early_stop < 0:
                 break
         
-    compiled_net.save_connectivity((best_e,), serialiser)
+    
 
 
 network_weights = "checkpoints_mnist_sequence_" + unique_suffix + "/"
@@ -288,22 +294,37 @@ with network:
                                            tau_refrac=None),
                         NUM_HIDDEN, record_spikes=True)
     output_1 = Population(LeakyIntegrate(tau_mem=20.0, readout="max_var"),
-                        NUM_OUTPUT)
+                        int(NUM_OUTPUT/2))
     output_2 = Population(LeakyIntegrate(tau_mem=20.0, readout="max_var"),
-                        NUM_OUTPUT)
+                        int(NUM_OUTPUT/2))
+
+    output_3 = Population(LeakyIntegrate(tau_mem=20.0, readout="max_var"),
+                        int(NUM_OUTPUT/2))
+    output_4 = Population(LeakyIntegrate(tau_mem=20.0, readout="max_var"),
+                        int(NUM_OUTPUT/2))
 
     # Connections
     input_hidden_1 = Connection(input_1, hidden_1, Dense(Normal(mean=0.078, sd=0.045)),
                Exponential(5.0))
     
+    input_hidden_1.connectivity.weight = np.load(network_weights+"best-Conn_Pop0_Pop2-g.npy")
+
+    
     input_hidden_2 = Connection(input_2, hidden_2, Dense(Normal(mean=0.078, sd=0.045)),
                Exponential(5.0))
+
+    input_hidden_2.connectivity.weight = np.load(network_weights+"best-Conn_Pop1_Pop3-g.npy")
 
     
     hidden_1_hidden_1 = Connection(hidden_1, hidden_1, Dense(Normal(mean=0.0, sd=0.02), delay=Uniform(0.0, 0.0)),
                Exponential(5.0), max_delay_steps=255)
+    hidden_1_hidden_1.connectivity.weight = np.load(network_weights+"best-Conn_Pop2_Pop2-g.npy")
     hidden_2_hidden_2 = Connection(hidden_2, hidden_2, Dense(Normal(mean=0.0, sd=0.02), delay=Uniform(0.0, 0.0)),
                Exponential(5.0), max_delay_steps=255)
+    hidden_2_hidden_2.connectivity.weight = np.load(network_weights+"best-Conn_Pop3_Pop3-g.npy")
+    if args.delays_within:
+        hidden_1_hidden_1.connectivity.delay = np.load(network_weights+"best-Conn_Pop2_Pop2-d.npy")
+        hidden_2_hidden_2.connectivity.delay = np.load(network_weights+"best-Conn_Pop3_Pop3-d.npy")
     if args.sparsity == 1.0:
         hidden_1_hidden_2 = Connection(hidden_1, hidden_2, Dense(Normal(mean=0.0, sd=0.02), delay=Uniform(args.delay_init, args.delay_init)),
                 Exponential(5.0), max_delay_steps=255)
@@ -311,19 +332,30 @@ with network:
                 Exponential(5.0), max_delay_steps=255)
     elif args.sparsity > 0.0:
         connectivity_hidden_1_hidden_2 = FixedProbability(p=args.sparsity, weight=Normal(mean=0.0, sd=0.02), delay=Uniform(args.delay_init,args.delay_init))
-        connectivity_hidden_1_hidden_2.pre_ind = np.load(network_weights+str(best_e)+"-Conn_Pop2_Pop3-pre_ind.npy")
-        connectivity_hidden_1_hidden_2.post_ind = np.load(network_weights+str(best_e)+"-Conn_Pop2_Pop3-post_ind.npy")
+        connectivity_hidden_1_hidden_2.pre_ind = np.load(network_weights+"best-Conn_Pop2_Pop3-pre_ind.npy")
+        connectivity_hidden_1_hidden_2.post_ind = np.load(network_weights+"best-Conn_Pop2_Pop3-post_ind.npy")
         hidden_1_hidden_2 = Connection(hidden_1, hidden_2, connectivity_hidden_1_hidden_2,
-                Exponential(5.0), max_delay_steps=255, name="Conn_Pop2_Pop3")
+                Exponential(5.0), max_delay_steps=255)
+        
         connectivity_hidden_2_hidden_1 = FixedProbability(p=args.sparsity, weight=Normal(mean=0.0, sd=0.02), delay=Uniform(args.delay_init,args.delay_init))
-        connectivity_hidden_2_hidden_1.pre_ind = np.load(network_weights+str(best_e)+"-Conn_Pop3_Pop2-pre_ind.npy")
-        connectivity_hidden_2_hidden_1.post_ind = np.load(network_weights+str(best_e)+"-Conn_Pop3_Pop2-post_ind.npy")
+        connectivity_hidden_2_hidden_1.pre_ind = np.load(network_weights+"best-Conn_Pop3_Pop2-pre_ind.npy")
+        connectivity_hidden_2_hidden_1.post_ind = np.load(network_weights+"best-Conn_Pop3_Pop2-post_ind.npy")
         hidden_2_hidden_1 = Connection(hidden_2, hidden_1, connectivity_hidden_2_hidden_1,
                 Exponential(5.0), max_delay_steps=255)
+    
+    hidden_1_hidden_2.connectivity.weight = np.load(network_weights+"best-Conn_Pop2_Pop3-g.npy")
+    hidden_1_hidden_2.connectivity.delay = np.load(network_weights+"best-Conn_Pop2_Pop3-d.npy")
+    hidden_2_hidden_1.connectivity.weight = np.load(network_weights+"best-Conn_Pop3_Pop2-g.npy")
+    hidden_2_hidden_1.connectivity.delay = np.load(network_weights+"best-Conn_Pop3_Pop2-d.npy")
 
     hidden1_output1 = Connection(hidden_1, output_1, Dense(weight=Normal(mean=0.2, sd=0.37)),
                Exponential(5.0))
     hidden1_output2 = Connection(hidden_1, output_2, Dense(weight=Normal(mean=0.2, sd=0.37)),
+               Exponential(5.0))
+    
+    hidden2_output3 = Connection(hidden_2, output_3, Dense(weight=Normal(mean=0.2, sd=0.37)),
+               Exponential(5.0))
+    hidden2_output4 = Connection(hidden_2, output_4, Dense(weight=Normal(mean=0.2, sd=0.37)),
                Exponential(5.0))
     
 k_reg = {}
@@ -346,63 +378,50 @@ compiled_net = compiler.compile(network, name=model_name)
 
 # Apply augmentation to events and preprocess
 
-spikes_train_1, spikes_train_2, labels_train_1, labels_train_2 = merge_paired_spikes(spikes_mnist_train, labels_mnist_train)
-spikes_test_1, spikes_test_2, labels_test_1, labels_test_2  = merge_paired_spikes(spikes_mnist_test, labels_mnist_test)
+def merge_paired_spikes2(spikes, labels_orig):
+    # Determine the number of pairs based on the smaller dataset
+    num_pairs = len(spikes)
+    
+    # Randomly sample indices for both datasets
+    indices_1 = np.random.choice(len(spikes), num_pairs, replace=False)
+    indices_2 = np.random.choice(len(spikes), num_pairs, replace=False)
+    sequence = np.random.randint(2, size=num_pairs)
+    sequenced_spikes_1, sequenced_spikes_2, labels_1, labels_2 = [], [], [], []
+    for ind_1, ind_2, seq in zip(indices_1, indices_2, sequence):
+        if seq == 1:
+            sequenced_spikes_1.append(linear_latency_encode(
+                spikes[ind_1],
+                EXAMPLE_TIME - (2.0 * DT), 2.0 * DT))
+            sequenced_spikes_2.append(linear_latency_encode(
+                spikes[ind_2],
+                EXAMPLE_TIME + 100.0 - (2.0 * DT), (2.0 + 100.0) * DT))
+        else:
+            sequenced_spikes_2.append(linear_latency_encode(
+                spikes[ind_2],
+                EXAMPLE_TIME - (2.0 * DT), 2.0 * DT))
+            sequenced_spikes_1.append(linear_latency_encode(
+                spikes[ind_1],
+                EXAMPLE_TIME + 100.0 - (2.0 * DT), (2.0 + 100.0) * DT))
+        labels_1.append(labels_orig[ind_1])
+        labels_2.append(labels_orig[ind_2])
+    return sequenced_spikes_1, sequenced_spikes_2, labels_1, labels_2
+
+spikes_train_1, spikes_train_2, labels_train_1, labels_train_2 = merge_paired_spikes2(spikes_mnist_train, labels_mnist_train)
+spikes_test_1, spikes_test_2, labels_test_1, labels_test_2  = merge_paired_spikes2(spikes_mnist_test, labels_mnist_test)
 
 with compiled_net:
     # Loop through epochs
     callbacks = [EaseInSchedule()]
     validation_callbacks = []
-    best_e, best_acc_1, best_acc_2 = 0, 0, 0
+    best_acc_1, best_acc_2, best_acc_3, best_acc_4 = 0, 0, 0, 0
     early_stop = 15
-    _input_hidden_1 = compiled_net.connection_populations[input_hidden_1]
-    _input_hidden_1.vars["g"].pull_from_device()
-    _input_hidden_1.vars["g"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop0_Pop2-g.npy")
-    _input_hidden_1.vars["g"].push_to_device()
-    _input_hidden_2 = compiled_net.connection_populations[input_hidden_2]
-    _input_hidden_2.vars["g"].pull_from_device()
-    _input_hidden_2.vars["g"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop1_Pop3-g.npy")
-    _input_hidden_2.vars["g"].push_to_device()
-
-    _hidden1_hidden_1 = compiled_net.connection_populations[hidden_1_hidden_1]
-    _hidden1_hidden_1.vars["g"].pull_from_device()
-    _hidden1_hidden_1.vars["g"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop2_Pop2-g.npy")
-    _hidden1_hidden_1.vars["g"].push_to_device()
-    _hidden2_hidden_2 = compiled_net.connection_populations[hidden_2_hidden_2]
-    _hidden2_hidden_2.vars["g"].pull_from_device()
-    _hidden2_hidden_2.vars["g"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop3_Pop3-g.npy")
-    _hidden2_hidden_2.vars["g"].push_to_device()
-
-    if args.delays_within:
-        _hidden1_hidden_1.vars["d"].pull_from_device()
-        _hidden1_hidden_1.vars["d"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop2_Pop2-d.npy")
-        _hidden1_hidden_1.vars["d"].push_to_device()
-        _hidden2_hidden_2.vars["d"].pull_from_device()
-        _hidden2_hidden_2.vars["d"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop3_Pop3-d.npy")
-        _hidden2_hidden_2.vars["d"].push_to_device()
-    
-    _hidden1_hidden_2 = compiled_net.connection_populations[hidden_1_hidden_2]
-    _hidden1_hidden_2.vars["g"].pull_from_device()
-    _hidden1_hidden_2.vars["g"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop2_Pop3-g.npy")
-    _hidden1_hidden_2.vars["g"].push_to_device()
-    _hidden1_hidden_2.vars["d"].pull_from_device()
-    _hidden1_hidden_2.vars["d"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop2_Pop3-d.npy")
-    _hidden1_hidden_2.vars["d"].push_to_device()
-    _hidden2_hidden_1 = compiled_net.connection_populations[hidden_2_hidden_1]
-    _hidden2_hidden_1.vars["g"].pull_from_device()
-    _hidden2_hidden_1.vars["g"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop3_Pop2-g.npy")
-    _hidden2_hidden_1.vars["g"].push_to_device()
-    _hidden2_hidden_1.vars["d"].pull_from_device()
-    _hidden2_hidden_1.vars["d"].values = np.load(network_weights+str(best_epoch)+"-Conn_Pop3_Pop2-d.npy")
-    _hidden2_hidden_1.vars["d"].push_to_device()
-        
     for e in range(500):
         
         # Train epoch
         train_metrics, valid_metrics, train_cb, valid_cb  = compiled_net.train({input_1: spikes_train_1, input_2: spikes_train_2},
-                                            {output_1: labels_train_1, output_2: labels_train_2},
+                                            {output_1: labels_train_1, output_2: labels_train_2, output_3: labels_train_1, output_4: labels_train_2},
                                             start_epoch=e, num_epochs=1, 
-                                            shuffle=True, callbacks=callbacks, validation_callbacks=validation_callbacks, validation_x={input_1: spikes_test_1, input_2: spikes_test_2}, validation_y={output_1: labels_test_1, output_2: labels_test_2})
+                                            shuffle=True, callbacks=callbacks, validation_callbacks=validation_callbacks, validation_x={input_1: spikes_test_1, input_2: spikes_test_2}, validation_y={output_1: labels_test_1, output_2: labels_test_2, output_3: labels_test_1, output_4: labels_test_2})
 
         
 
@@ -410,21 +429,36 @@ with compiled_net:
         not_improved = True
         if train_metrics[output_1].result > best_acc_1:
             best_acc_1 = train_metrics[output_1].result
-            results_dic["best_spec"] = valid_metrics[output_1].result - valid_metrics[output_2].result
-            best_e = e
+            results_dic["spec1_correct"] = valid_metrics[output_1].result
+            results_dic["spec1_incorrect"] = valid_metrics[output_2].result
+            #results_dic["spec1"] = valid_metrics[output_1].result - valid_metrics[output_2].result
             early_stop = 15
             not_improved = False
         if train_metrics[output_2].result > best_acc_2:
             best_acc_2 = train_metrics[output_2].result
-            results_dic["best_spec"] = valid_metrics[output_1].result - valid_metrics[output_2].result
-            best_e = e
+            results_dic["spec1_correct"] = valid_metrics[output_1].result
+            results_dic["spec1_incorrect"] = valid_metrics[output_2].result
+            #results_dic["spec1"] = valid_metrics[output_1].result - valid_metrics[output_2].result
+            early_stop = 15
+            not_improved = False
+        if train_metrics[output_3].result > best_acc_3:
+            best_acc_3 = train_metrics[output_3].result
+            results_dic["spec2_correct"] = valid_metrics[output_4].result
+            results_dic["spec2_incorrect"] = valid_metrics[output_3].result
+            #results_dic["spec2"] = valid_metrics[output_4].result - valid_metrics[output_3].result
+            early_stop = 15
+            not_improved = False
+        if train_metrics[output_4].result > best_acc_4:
+            best_acc_4 = train_metrics[output_4].result
+            results_dic["spec2_correct"] = valid_metrics[output_4].result
+            results_dic["spec2_incorrect"] = valid_metrics[output_3].result
+            #results_dic["spec2"] = valid_metrics[output_4].result - valid_metrics[output_3].result
             early_stop = 15
             not_improved = False
         if not_improved:
             early_stop -= 1
             if early_stop < 0:
                 break
-
 
 
 
