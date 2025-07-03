@@ -184,23 +184,13 @@ with network:
 
     hidden1_output = Connection(hidden_1, output, FixedProbability(p=0.5, weight=Normal(mean=0.2, sd=0.37)),
                Exponential(5.0))
-    pre_ind_1_out, post_ind_1_out = np.meshgrid(np.arange(NUM_HIDDEN), np.arange(10))
-
-    # Flatten the arrays to get 1D arrays of all pairs
-    pre_ind_1_out = pre_ind_1_out.flatten() 
-    post_ind_1_out = post_ind_1_out.flatten()  
-    hidden1_output.connectivity.pre_ind = pre_ind_1_out
-    hidden1_output.connectivity.post_ind = post_ind_1_out
-    #need to zero out connections from other module
+    hidden1_output.connectivity.pre_ind = np.load(network_weights+"best-Conn_Pop2_Pop4-pre_ind.npy")
+    hidden1_output.connectivity.post_ind = np.load(network_weights+"best-Conn_Pop2_Pop4-post_ind.npy")
     hidden1_output.connectivity.weight = np.load(network_weights+"best-Conn_Pop2_Pop4-g.npy")
     hidden2_output = Connection(hidden_2, output, FixedProbability(p=0.5, weight=Normal(mean=0.2, sd=0.37)),
                Exponential(5.0))
-
-    pre_ind_2_out, post_ind_2_out = np.meshgrid(np.arange(NUM_HIDDEN), np.arange(10,20))
-    pre_ind_2_out = pre_ind_2_out.flatten()
-    post_ind_2_out = post_ind_2_out.flatten()
-    hidden2_output.connectivity.pre_ind = pre_ind_2_out
-    hidden2_output.connectivity.post_ind = post_ind_2_out
+    hidden2_output.connectivity.pre_ind = np.load(network_weights+"best-Conn_Pop3_Pop4-pre_ind.npy")
+    hidden2_output.connectivity.post_ind = np.load(network_weights+"best-Conn_Pop3_Pop4-post_ind.npy")
     hidden2_output.connectivity.weight = np.load(network_weights+"best-Conn_Pop3_Pop4-g.npy")
     
 
