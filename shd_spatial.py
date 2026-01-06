@@ -34,7 +34,6 @@ parser.add_argument("--num_hidden", type=int, default=128, help="Number of hidde
 parser.add_argument("--num_dim", type=int, default=2, help="Number of dimensions")
 parser.add_argument("--k_reg", type=float, default=5e-11, help="Spike regularisation strength")
 parser.add_argument("--delay_lr", type=float, default=0.1, help="Learning rate for the R")
-parser.add_argument("--max_delay", type=int, default=62, help="Maximum possible delay")
 parser.add_argument("--l1", type=float, default=0.0, help="L1 regularisation strength")
 parser.add_argument("--dist_lambda", type=int, default=1, help="Distance cost")
 parser.add_argument("--seed", type=int, default=42, help="Random seed")
@@ -166,7 +165,7 @@ latest_spike_time = max(latest_spike_time, calc_latest_spike_time(spikes_test))
 
 
 
-serialiser = Numpy("checkpoints_space_cartesian_limit_" + unique_suffix)
+serialiser = Numpy("checkpoints_space_cartesian_nolimit_dynamic_" + unique_suffix)
 network = Network(default_params)
 with network:
     # Populations
@@ -184,8 +183,6 @@ with network:
         pos_dic = {}
         pos_dic[hidden] = positons
 
-        pos_dic["max_delay"] = args.max_delay
-
 
         points = np.column_stack(positons)
         dist = cdist(points, points)
@@ -195,7 +192,7 @@ with network:
                Exponential(5.0))
     if args.delay_lr > 0:
         Conn_Pop1_Pop1 = Connection(hidden, hidden, Dense(Normal(mean=0.0, sd=0.02), dist),
-                Exponential(5.0), max_delay_steps=args.max_delay)
+                Exponential(5.0), max_delay_steps = 1000)
     else:
         Conn_Pop1_Pop1 = Connection(hidden, hidden, Dense(Normal(mean=0.0, sd=0.02)),
                 Exponential(5.0))
@@ -270,7 +267,7 @@ with compiled_net:
         compiled_net.save((e,), serialiser)
         Pop1 = compiled_net.neuron_populations[hidden]
         for i in range(args.num_dim):
-            np.save("checkpoints_space_cartesian_limit_" + unique_suffix + "/" + str(e) + "-Pos" + str(i) + ".npy", Pop1.vars["Pos"+str(i)].values)
+            np.save("checkpoints_space_cartesian_nolimit_dynamic_" + unique_suffix + "/" + str(e) + "-Pos" + str(i) + ".npy", Pop1.vars["Pos"+str(i)].values)
         if train_metrics[output].result > best_acc:
             best_acc = train_metrics[output].result
             results_dic["train_acc"] = str(best_acc)
@@ -287,7 +284,7 @@ with compiled_net:
                 break
 
 
-with open(f"results_pos/acc_pos_cartesian_limit_{unique_suffix}.json", 'w') as f:
+with open(f"results_pos/acc_pos_cartesian_nolimit_dynamic_{unique_suffix}.json", 'w') as f:
     json.dump(results_dic, f, indent=4)
 
 #network.load(("best",), serialiser)
@@ -312,7 +309,7 @@ with compiled_net:
                                         {output: labels_test})
     results_dic["magnitude_pruned_acc"] = str(metrics[output].result)
 
-    with open(f"results_pos/acc_pos_cartesian_limit_{unique_suffix}.json", 'w') as f:
+    with open(f"results_pos/acc_pos_cartesian_nolimit_dynamic_{unique_suffix}.json", 'w') as f:
         json.dump(results_dic, f, indent=4)
     
 #network.load(("best",), serialiser)
@@ -338,5 +335,5 @@ with compiled_net:
     results_dic["length_pruned_acc"] = str(metrics[output].result)
 
 
-    with open(f"results_pos/acc_pos_cartesian_limit_{unique_suffix}.json", 'w') as f:
+    with open(f"results_pos/acc_pos_cartesian_nolimit_dynamic_{unique_suffix}.json", 'w') as f:
         json.dump(results_dic, f, indent=4)
