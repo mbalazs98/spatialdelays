@@ -22,6 +22,10 @@ from ml_genn.compilers.event_prop_compiler import default_params
 from argparse import ArgumentParser
 
 import os
+import re
+
+pattern = re.compile(r"^(\d+)-")
+
 
 from scipy.spatial.distance import cdist
 
@@ -30,11 +34,12 @@ import copy
 
 
 parser = ArgumentParser()
-parser.add_argument("--num_hidden", type=int, default=256, help="Number of hidden neurons")
-parser.add_argument("--num_dim", type=int, default=3, help="Number of dimensions")
-parser.add_argument("--sparsity", type=float, default=1.0, help="Sparsity of connections")
+parser.add_argument("--num_hidden", type=int, default=128, help="Number of hidden neurons")
+parser.add_argument("--num_dim", type=int, default=2, help="Number of dimensions")
 parser.add_argument("--k_reg", type=float, default=5e-11, help="Spike regularisation strength")
 parser.add_argument("--delay_lr", type=float, default=0.1, help="Learning rate for the R")
+parser.add_argument("--l1", type=float, default=0.0, help="L1 regularisation strength")
+parser.add_argument("--dist_lambda", type=int, default=1, help="Distance cost")
 parser.add_argument("--seed", type=int, default=42, help="Random seed")
 args = parser.parse_args()
 
@@ -74,7 +79,7 @@ latest_spike_time = calc_latest_spike_time(spikes_test)
 
 
 
-serialiser = Numpy("checkpoints_space_cartesian" + unique_suffix)
+serialiser = Numpy("checkpoints_space_cartesian_nolimit_dynamic_" + unique_suffix)
 network = Network(default_params)
 with network:
     # Populations
@@ -95,7 +100,17 @@ with network:
     Conn_Pop1_Pop2 = Connection(hidden, output, Dense(Normal(mean=0.0, sd=0.03)),
                Exponential(5.0))
 max_example_timesteps = int(np.ceil(latest_spike_time / DT))
-network.load(("best",), serialiser)
+last_epoch = 0
+
+for filename in os.listdir("checkpoints_space_cartesian_nolimit_dynamic_" + str(unique_suffix)):
+    match = pattern.match(filename)
+    if match:
+        num = int(match.group(1))  # Convert to integer
+        if num > last_epoch:
+            last_epoch = num
+if last_epoch < 299:
+    last_epoch -= 16
+network.load((last_epoch,), serialiser)
 compiler = InferenceCompiler(evaluate_timesteps=max_example_timesteps,
                                 reset_in_syn_between_batches=True,
                                 batch_size=BATCH_SIZE, rng_seed=args.seed)
@@ -105,24 +120,23 @@ compiled_net = compiler.compile(network, name=model_name)
 results_dic = {}
 
 
-percentages = [95, 90, 85, 80, 75, 70]
+percentages = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
 with compiled_net:
     _Conn_Pop1_Pop1 = compiled_net.connection_populations[Conn_Pop1_Pop1]
     _Conn_Pop1_Pop1.vars["g"].pull_from_device()
     g_orig = copy.deepcopy(_Conn_Pop1_Pop1.vars["g"].view.reshape((NUM_HIDDEN, NUM_HIDDEN)))
-    _Conn_Pop1_Pop1.vars["d"].pull_from_device()
-    d_view = _Conn_Pop1_Pop1.vars["d"].view.reshape((NUM_HIDDEN, NUM_HIDDEN))
     for percentage in percentages:
         _Conn_Pop1_Pop1 = compiled_net.connection_populations[Conn_Pop1_Pop1]
         _Conn_Pop1_Pop1.vars["g"].pull_from_device()
         g_view = _Conn_Pop1_Pop1.vars["g"].view.reshape((NUM_HIDDEN, NUM_HIDDEN))
         g_view[:] = g_orig
-        g_view[d_view > np.percentile(d_view, percentage)] = 0
+        thresh = np.quantile(np.abs(g_view), q=percentage/100)
+        g_view[np.abs(g_view) < thresh] = 0
         _Conn_Pop1_Pop1.vars["g"].push_to_device()
         metrics, _  = compiled_net.evaluate({input: spikes_test},
                                             {output: labels_test}, callbacks=[])
 
-        results_dic["acc"+str(percentage)] = metrics[output].result
+        results_dic["acc_prune"+str(percentage)] = metrics[output].result
 
-with open(f"results_pos/prune_pos_cartesian{unique_suffix}.json", 'w') as f:
-    json.dump(results_dic, f, indent=4)
+        with open(f"results_pos/prune_nolimit_{unique_suffix}.json", 'w') as f:
+            json.dump(results_dic, f, indent=4)
