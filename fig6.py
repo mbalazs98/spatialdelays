@@ -53,7 +53,7 @@ for seed in range(20):
 
 
 
-fig, ax = plt.subplots(2, 2 ,figsize=(6.75, 4.8))
+fig, ax = plt.subplots(2, 2 ,figsize=(6.75, 3.5))
 
         
 ax[0,0].errorbar(x=[0, 5, 10, 15, 20, 25, 30], y=np.mean(nospace_accs, 1), yerr=np.std(nospace_accs, 1),  marker='s', markersize=4,
@@ -231,7 +231,7 @@ ax[1,0].errorbar(x=[0, 5, 10, 15, 20, 25, 30], y=mean_2d, yerr=std_2d,  marker='
                     color=palette[0], label="Spatial", capsize=3, linewidth=0.7)
 
 ax[1,0].set_xlabel('(%) of longest connections pruned')
-ax[1,0].set_ylabel('Q metric')
+ax[1,0].set_ylabel('Modularity')
 
 
 
@@ -393,7 +393,7 @@ for percentage in percentages:
         Aperm = np.where(Wperm>threshold,upper,lower)
         # Take null model
         cluperm[perm] = np.mean(clustering_coef_bu(Aperm))
-        pthperm[perm] = efficiency_bin(Aperm)
+        #pthperm[perm] = efficiency_bin(Aperm)
     # Take the average of the nulls
     clunull = np.mean(cluperm)
     pthnull = np.mean(pthperm)
@@ -403,8 +403,9 @@ for percentage in percentages:
         A = d < np.percentile(np.abs(d), percentage)
         # Compute the small worldness
         clu = np.mean(clustering_coef_bu(A))
-        pth = efficiency_bin(A)
-        smws.append(np.divide(np.divide(clu,clunull),np.divide(pthnull,pth)))
+        #pth = efficiency_bin(A)
+        #smws.append(np.divide(np.divide(clu,clunull),np.divide(pthnull,pth)))
+        smws.append(np.divide(clu,clunull))
 
     space_mean.append(np.mean(smws))
     space_std.append(np.std(smws))
@@ -433,7 +434,7 @@ for percentage in percentages:
         Aperm = np.where(Wperm>threshold,upper,lower)
         # Take null model
         cluperm[perm] = np.mean(clustering_coef_bu(Aperm))
-        pthperm[perm] = efficiency_bin(Aperm)
+        #pthperm[perm] = efficiency_bin(Aperm)
     # Take the average of the nulls
     clunull = np.mean(cluperm)
     pthnull = np.mean(pthperm)
@@ -443,8 +444,9 @@ for percentage in percentages:
         A = d < np.percentile(np.abs(d), percentage)
         # Compute the small worldness
         clu = np.mean(clustering_coef_bu(A))
-        pth = efficiency_bin(A)
-        smws.append(np.divide(np.divide(clu,clunull),np.divide(pthnull,pth)))
+        #pth = efficiency_bin(A)
+        #smws.append(np.divide(np.divide(clu,clunull),np.divide(pthnull,pth)))
+        smws.append(np.divide(clu,clunull))
 
     nospace_mean.append(np.mean(smws))
     nospace_std.append(np.std(smws))
@@ -456,17 +458,31 @@ ax[1,1].errorbar(x=[0, 5, 10, 15, 20, 25, 30], y=nospace_mean, yerr=nospace_std,
 ax[1,1].errorbar(x=[0, 5, 10, 15, 20, 25, 30], y=space_mean, yerr=space_std,  marker='s', markersize=4,
             color=palette[0], label="Spatial", capsize=3, linewidth=0.7)
 ax[1,1].set_xlabel('(%) of longest connections pruned')
-ax[1,1].set_ylabel('Small Worldness')
+ax[1,1].set_ylabel('Clustering')
 handles, labels = [], []
 for i, a in enumerate(ax[1:,:].flatten()):
     h, l = a.get_legend_handles_labels()
     handles.extend(h)
     labels.extend(l)
     break
+for a in ax.flatten():
+    a.spines.right.set_visible(False)
+    a.spines.top.set_visible(False)
+    a.grid(False)
 #ax[2].legend()
 #handles=list(ax[1:,:].flatten()), labels=["Non-spatial", "Spatial", "Spatial+cost"]
-fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=2)
+fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=2, frameon=False)
+fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=3, frameon=False)
 plt.tight_layout(rect=[0, 0.05, 1, 1])
+fig.subplots_adjust(top=0.93)
+ax[0,0].text(-0.1, 1.1, "A", transform=ax[0,0].transAxes,
+            fontsize=8, va='top', ha='left',fontweight='bold' )
+ax[0,1].text(-0.1, 1.1, "B", transform=ax[0,1].transAxes,
+            fontsize=8, va='top', ha='left',fontweight='bold')
+ax[1,0].text(-0.1, 1.1, "C", transform=ax[1,0].transAxes,
+            fontsize=8, va='top', ha='left',fontweight='bold')
+ax[1,1].text(-0.1, 1.1, "D", transform=ax[1,1].transAxes,
+            fontsize=8, va='top', ha='left',fontweight='bold')
 #plt.tight_layout()
 plt.show()
 plt.savefig("shd_prune_all.pdf")
