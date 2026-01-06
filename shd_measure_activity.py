@@ -24,13 +24,10 @@ import copy
 
 NUM_HIDDEN = 128
 
-NUM_EPOCHS = 100
 DT = 1.0
-TRAIN = True
 
 # Get SHD dataset
 dataset = SHD(save_to='../data', train=False)
-chosen_label = 1
 # Preprocess
 spikes = []
 labels = []
