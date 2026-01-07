@@ -39,23 +39,6 @@ no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-
 space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_2_")
 
 
-
-
-def spectral_entropy(W):
-    eigvals = np.linalg.eigvals(W)
-    abs_eigvals = np.abs(eigvals)
-    max_eigvals = np.max(eigvals)
-    total = np.sum(abs_eigvals)
-    if total == 0:
-        return 0.0
-    P = abs_eigvals / total
-    P_nonzero = P[P > 0]
-    H_spec = - np.sum(P_nonzero * np.log2(P_nonzero))
-    return H_spec, max_eigvals
-
-
-
-
 def shannon_entropy_weights(W):
     W = np.abs(W)
     row_sums = W.sum(axis=1, keepdims=True)
@@ -65,24 +48,6 @@ def shannon_entropy_weights(W):
     P[P == 0] = 1  # avoid log2(0); log2(1)=0 so it doesn’t change result
     H_rows = -np.sum(P * np.log2(P), axis=1)
     return np.mean(H_rows)
-
-
-def shannon_entropy_comms(W):
-    W = np.abs(W)
-    N = W.shape[0]
-    s = np.diag(np.sum(W, axis=1))
-    s_inv_sqrt = np.zeros_like(s)
-    nonzero_mask = np.diag(s) > 0
-    s_inv_sqrt[nonzero_mask, nonzero_mask] = 1.0 / np.sqrt(np.diag(s)[nonzero_mask])
-    adj = s_inv_sqrt @ W @ s_inv_sqrt
-    ncabs = expm(adj)
-    row_sums = ncabs.sum(axis=1, keepdims=True)
-    row_sums[row_sums == 0] = 1.0
-    P = ncabs / row_sums
-    P_safe = np.where(P > 0, P, 1)
-    H_rows = -np.sum(P_safe * np.log2(P_safe), axis=1)
-    se_ncabs = np.mean(H_rows)
-    return se_ncabs
 
 no_space_ent = []
 no_space_ent_std = []
