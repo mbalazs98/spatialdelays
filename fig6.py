@@ -3,6 +3,8 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import re
+
 
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":8, "xtick.labelsize":8, "ytick.labelsize":8})
@@ -15,16 +17,17 @@ sns.set_context(rc={"lines.markeredgewidth": 1.0})
 sns.set_palette("deep")
 
 # Folder with results
+pattern = re.compile(r"^(\d+)-")
 results_dir = 'results_pos'
 
 data = []
 palette = sns.color_palette("deep")
-nospace_full = "acc_nospace_128_1.0_5e-12_0.5_"
-space_full = "acc_pos_cartesian_128_2_1.0_5e-13_0.01_"
-nospace_prune = "prune_nospace_128_1.0_5e-12_0.5_"
-space_prune = "prune_pos_cartesian128_2_1.0_5e-13_0.01_"
-checkpoint_nospace = "checkpoints_shd_nospace128_1.0_5e-12_0.5_"
-checkpoint_space = "checkpoints_space_cartesian128_2_1.0_5e-13_0.01_"
+nospace_full = "acc_pos_cartesian_nolimit_dynamic_128_0_5e-13_0.05_0.0_0_"
+space_full = "acc_pos_cartesian_nolimit_dynamic_128_2_5e-13_0.05_0.0_0_"
+nospace_prune = "prunedist_nolimit_128_0_5e-13_0.05_0.0_0_"
+space_prune = "prunedist_nolimit_128_2_5e-13_0.05_0.0_0_"
+checkpoint_nospace = "checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_0.0_0_"
+checkpoint_space = "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_0.0_0_"
 nospace_accs = np.zeros((7, 20))
 space_accs = np.zeros((7, 20))
 for seed in range(20):
@@ -68,9 +71,27 @@ ax[0,0].set_ylabel('Test accuracy (%)')
 
 max_d = 0
 for i in range(0,19):
-    d = np.load(checkpoint_nospace+ str(i)+ "/best-Conn_Pop1_Pop1-d.npy")
+    last_epoch = 0
+    for filename in os.listdir(checkpoint_nospace+ str(i)):
+        match = pattern.match(filename)
+        if match:
+            num = int(match.group(1))  # Convert to integer
+            if num > last_epoch:
+                last_epoch = num
+    if last_epoch < 299:
+        last_epoch -= 16
+    d = np.load(checkpoint_nospace+ str(i)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy")
     max_d = max(max_d,np.max(d))
-    d = np.load(checkpoint_space+ str(i)+ "/best-Conn_Pop1_Pop1-d.npy")
+    last_epoch = 0
+    for filename in os.listdir(checkpoint_space+ str(i)):
+        match = pattern.match(filename)
+        if match:
+            num = int(match.group(1))  # Convert to integer
+            if num > last_epoch:
+                last_epoch = num
+    if last_epoch < 299:
+        last_epoch -= 16
+    d = np.load(checkpoint_space+ str(i)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy")
     max_d = max(max_d,np.max(d))
 
 max_d = 200
@@ -78,7 +99,16 @@ max_d = 200
 
 hist_sum = None
 for seed in range(0,19):
-    d = np.load(checkpoint_nospace+ str(seed)+ "/best-Conn_Pop1_Pop1-d.npy")
+    last_epoch = 0
+    for filename in os.listdir(checkpoint_nospace+ str(i)):
+        match = pattern.match(filename)
+        if match:
+            num = int(match.group(1))  # Convert to integer
+            if num > last_epoch:
+                last_epoch = num
+    if last_epoch < 299:
+        last_epoch -= 16
+    d = np.load(checkpoint_nospace+ str(i)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy")
     bins = np.linspace(0,int(max_d))
 
 
@@ -102,7 +132,16 @@ for i in range(len(bins) - 1):
 
 hist_sum = None
 for seed in range(0,19):
-    d = np.load(checkpoint_space+ str(seed)+ "/best-Conn_Pop1_Pop1-d.npy")
+    last_epoch = 0
+    for filename in os.listdir(checkpoint_space+ str(seed)):
+        match = pattern.match(filename)
+        if match:
+            num = int(match.group(1))  # Convert to integer
+            if num > last_epoch:
+                last_epoch = num
+    if last_epoch < 299:
+        last_epoch -= 16
+    d = np.load(checkpoint_space+ str(seed)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy")
     bins = np.linspace(0,int(max_d))
 
 
@@ -203,7 +242,16 @@ std_2d.append(0)
 for percentage in percentages:
     q_stats = []
     for i in range(20):
-        d = np.load(checkpoint_space+ str(i)+ "/best-Conn_Pop1_Pop1-d.npy").reshape(128,128)
+        last_epoch = 0
+        for filename in os.listdir(checkpoint_space+ str(i)):
+            match = pattern.match(filename)
+            if match:
+                num = int(match.group(1))  # Convert to integer
+                if num > last_epoch:
+                    last_epoch = num
+        if last_epoch < 299:
+            last_epoch -= 16
+        d = np.load(checkpoint_space+ str(i)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy").reshape(128,128)
         #print(np.percentile(np.abs(d), 95))
         ci, q_stat = modularity_und(d < np.percentile(np.abs(d), percentage), gamma=1)
         q_stats.append(q_stat)
@@ -216,7 +264,16 @@ std_nospace.append(0)
 for percentage in percentages:
     q_stats = []
     for i in range(20):
-        d = np.load(checkpoint_nospace+ str(i)+ "/best-Conn_Pop1_Pop1-d.npy").reshape(128,128)
+        last_epoch = 0
+        for filename in os.listdir(checkpoint_nospace+ str(i)):
+            match = pattern.match(filename)
+            if match:
+                num = int(match.group(1))  # Convert to integer
+                if num > last_epoch:
+                    last_epoch = num
+        if last_epoch < 299:
+            last_epoch -= 16
+        d = np.load(checkpoint_nospace+ str(i)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy").reshape(128,128)
         #print(np.percentile(np.abs(d), 95))
         ci, q_stat = modularity_und(d < np.percentile(np.abs(d), percentage), gamma=1)
         q_stats.append(q_stat)
@@ -398,7 +455,16 @@ for percentage in percentages:
     clunull = np.mean(cluperm)
     pthnull = np.mean(pthperm)
     for i in range(20):
-        d = np.load(checkpoint_space+ str(i)+ "/best-Conn_Pop1_Pop1-d.npy").reshape(128,128)
+        last_epoch = 0
+        for filename in os.listdir(checkpoint_space+ str(i)):
+            match = pattern.match(filename)
+            if match:
+                num = int(match.group(1))  # Convert to integer
+                if num > last_epoch:
+                    last_epoch = num
+        if last_epoch < 299:
+            last_epoch -= 16
+        d = np.load(checkpoint_space+ str(i)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy").reshape(128,128)
         #print(np.percentile(np.abs(d), 95))
         A = d < np.percentile(np.abs(d), percentage)
         # Compute the small worldness
@@ -439,7 +505,16 @@ for percentage in percentages:
     clunull = np.mean(cluperm)
     pthnull = np.mean(pthperm)
     for i in range(20):
-        d = np.load(checkpoint_nospace+ str(i)+ "/best-Conn_Pop1_Pop1-d.npy").reshape(128,128)
+        last_epoch = 0
+        for filename in os.listdir(checkpoint_nospace+ str(i)):
+            match = pattern.match(filename)
+            if match:
+                num = int(match.group(1))  # Convert to integer
+                if num > last_epoch:
+                    last_epoch = num
+        if last_epoch < 299:
+            last_epoch -= 16
+        d = np.load(checkpoint_nospace+ str(i)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy").reshape(128,128)
         #print(np.percentile(np.abs(d), 95))
         A = d < np.percentile(np.abs(d), percentage)
         # Compute the small worldness
