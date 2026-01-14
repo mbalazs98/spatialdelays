@@ -8,8 +8,7 @@ import matplotlib.gridspec as gridspec
 
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":7, "xtick.labelsize":7, "ytick.labelsize":8})
-sns.set_style("whitegrid", {"font.family":"sans-serif", "font.serif":"OpenSans"})
-
+sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
 
@@ -17,9 +16,7 @@ sns.set_context(rc={"lines.markeredgewidth": 1.0})
 palette = sns.color_palette("deep")
 
 
-fig, ax = plt.subplots(2, 1, figsize=(1.45,1.3),height_ratios=[1, 0.1])
-#fig.suptitle(r"$Training\;\longrightarrow$",)
-
+fig, ax = plt.subplots(2, 1, figsize=(1.7,1.3), gridspec_kw={'height_ratios':[50, 1]})
 
 spatial = [0.7, 0.68, 0.73]
 spatial_std = [0.05, 0.07, 0.05]
@@ -48,18 +45,17 @@ ax[0].set_xticklabels(["Weak","Medium","Strong"])
 ax[0].spines.right.set_visible(False)
 ax[0].spines.top.set_visible(False)
 ax[0].grid(False)
-ax[0].set_ylabel('R2 score')
-#ax.set_xlabel('Regularisation')
+ax[0].set_ylabel(r'R$^2$ score')
 
-'''ax.legend(loc='upper center', 
-             bbox_to_anchor=(0.5, -0.2),fancybox=False, shadow=False, ncol=1)'''
 handles, labels = ax[0].get_legend_handles_labels()
-ax[-1].legend(
+fig.legend(
     handles, labels,
-    loc="center",
+    loc='lower center',
     ncol=2,
     frameon=False,
+    bbox_to_anchor=(0.5, 0.02),
     columnspacing=0.5,
+    fontsize=7,
 )
 ax[1].spines.right.set_visible(False)
 ax[1].spines.top.set_visible(False)
@@ -69,6 +65,6 @@ ax[1].grid(False)
 ax[1].set_yticks([])
 ax[1].set_xticks([])
 
-plt.tight_layout()
+plt.tight_layout(rect=[0, 0.08, 1, 1])
 
 plt.savefig("reg.pdf")
