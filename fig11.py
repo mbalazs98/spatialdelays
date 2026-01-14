@@ -9,7 +9,7 @@ import re
 
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":8, "xtick.labelsize":8, "ytick.labelsize":8})
-sns.set_style("whitegrid", {"font.family":"sans-serif", "font.serif":"OpenSans"})
+sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
 
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
@@ -239,18 +239,6 @@ for el in no_cost:
 print(f'Final smallworldness of no cost network: {no_cost_smws[-1]}\n')
 
 
-
-
-'''ax.errorbar(x=[1e-10, 1e-09, 1e-08, 1e-07], y=no_space_smws, yerr=no_space_smws_std,  marker='o', markersize=4,
-            color=palette[1], label="Non-spatial", capsize=3, linewidth=0.7)
-
-ax.errorbar(x=[1e-10, 1e-09, 1e-08, 1e-07], y=no_cost_smws, yerr=no_cost_smws_std,  marker='o', markersize=4,
-            color=palette[0], label="Spatial", capsize=3, linewidth=0.7)
-
-
-ax.errorbar(x=[1e-10, 1e-09, 1e-08, 1e-07], y=space_cost_smws, yerr=space_cost_smws_std,  marker='o', markersize=4,
-            color=palette[3], label="Spatial+cost", capsize=3, linewidth=0.7)
-'''
 
 ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=no_space_smws, yerr=no_space_smws_std,  marker='o', markersize=4,
             color=palette[1], label="Non-spatial", capsize=3, linewidth=0.7)
