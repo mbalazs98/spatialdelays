@@ -5,7 +5,7 @@ import os
 import json
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":8, "xtick.labelsize":8, "ytick.labelsize":8})
-sns.set_style("whitegrid", {"font.family":"sans-serif", "font.serif":"OpenSans"})
+sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
 
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
