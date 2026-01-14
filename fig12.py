@@ -9,7 +9,7 @@ import re
 
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":8, "xtick.labelsize":8, "ytick.labelsize":8})
-sns.set_style("whitegrid", {"font.family":"sans-serif", "font.serif":"OpenSans"})
+sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
 
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
@@ -76,7 +76,7 @@ print(f'Final shannon of no space network: {no_space_ent[-1]}\n')
 
 
 label = "Non-spatial"
-ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=no_space_ent, yerr=no_space_ent_std, marker="o", markersize=3,
+ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=no_space_ent, yerr=no_space_ent_std, marker="o", markersize=4,
             color=palette[1], label=label, capsize=2, linewidth=0.7)
 
 
@@ -100,7 +100,7 @@ for el in no_cost:
 print(f'Final shannon of no cost network: {no_cost_ent[-1]}\n')
 
 label = "Spatial"
-ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=no_cost_ent, yerr=no_cost_ent_std, marker="o", markersize=3,
+ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=no_cost_ent, yerr=no_cost_ent_std, marker="o", markersize=4,
             color=palette[0], label=label, capsize=2, linewidth=0.7)
 
 
@@ -124,7 +124,7 @@ for el in space_cost:
 print(f'Final shannon of space cost network: {space_cost_ent[-1]}\n')
 
 label = "Spatial+cost"
-ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=space_cost_ent, yerr=space_cost_ent_std, marker="o", markersize=3,
+ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=space_cost_ent, yerr=space_cost_ent_std, marker="o", markersize=4,
             color=palette[3], label=label, capsize=2, linewidth=0.7)
 
 
