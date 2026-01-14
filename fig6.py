@@ -17,7 +17,8 @@ from matplotlib.transforms import Affine2D
 
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":8, "xtick.labelsize":8, "ytick.labelsize":8})
-sns.set_style("whitegrid", {"font.family":"sans-serif", "font.serif":"OpenSans"})
+sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
+
 
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
@@ -448,13 +449,13 @@ ax[1].text(
 )
 
 
-ax[2].errorbar(x=[1e-10, 1e-09, 1e-08], y=no_space_wirings, yerr=no_space_wirings_stds, marker="o", markersize=3,
+ax[2].errorbar(x=[1e-10, 1e-09, 1e-08], y=[1-no_space_wiring for no_space_wiring in no_space_wirings], yerr=no_space_wirings_stds, marker="o", markersize=3,
             color=palette[1], label="Non-spatial", capsize=2, linewidth=0.7)
 
-ax[2].errorbar(x=[1e-10, 1e-09, 1e-08], y=no_cost_wirings, yerr=no_cost_wirings_stds, marker="o", markersize=3,
+ax[2].errorbar(x=[1e-10, 1e-09, 1e-08], y=[1-no_cost_wiring for no_cost_wiring in no_cost_wirings], yerr=no_cost_wirings_stds, marker="o", markersize=3,
             color=palette[0], label="Spatial", capsize=2, linewidth=0.7)
 
-ax[2].errorbar(x=[1e-10, 1e-09, 1e-08], y=space_wirings, yerr=space_wirings_stds, marker="o", markersize=3,
+ax[2].errorbar(x=[1e-10, 1e-09, 1e-08], y=[1-space_wiring for space_wiring in space_wirings], yerr=space_wirings_stds, marker="o", markersize=3,
             color=palette[3], label='Spatial+cost', capsize=2, linewidth=0.7)
 
 ax[2].set_ylabel('Wiring efficiency')
@@ -464,6 +465,9 @@ for a in ax:
 ax[2].text(-0.1, 1.1, "C", transform=ax[2].transAxes,
             fontsize=8, va='top', ha='left',fontweight='bold' )
 handles, labels = ax[0].get_legend_handles_labels()
+
+for a in ax:
+    a.set_xlabel('Regularisation')
 
 subfigs[-1].legend(
     handles, labels,
@@ -483,4 +487,4 @@ for a in ax:
     a.set_xticks([1e-10, 1e-09, 1e-08])
     a.set_xticklabels(titles)
 
-plt.savefig("shd_reg2.pdf") #76.19, 76.68, 79.20
+plt.savefig("shd_reg2.pdf")
