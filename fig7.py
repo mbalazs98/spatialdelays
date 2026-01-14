@@ -8,7 +8,7 @@ import re
 
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":8, "xtick.labelsize":8, "ytick.labelsize":8})
-sns.set_style("whitegrid", {"font.family":"sans-serif", "font.serif":"OpenSans"})
+sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
 
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
@@ -292,16 +292,6 @@ ax[1,0].set_ylabel('Modularity')
 
 
 
-'''mean_3d = [1, 1.0185678573210084, 1.0465524871816148, 1.0826384215934712, 1.1250029963143182, 1.176326018735284, 1.234084585946681]
-std_3d = [0, 0.003274348614386222, 0.005679627309031956, 0.00832631547682384, 0.010524225242902922, 0.014437306607943111, 0.015527708990959743]
-
-mean_2d = [1,1.0162137285655253, 1.0450073885052125, 1.0822454935392611, 1.1267374219240291, 1.1785059782350342, 1.2394468399462446]
-std_2d = [0, 0.0019879323572088072, 0.0028236576400603704, 0.004248718332620567, 0.00538819354707996, 0.007027179683683709, 0.00947673302073038]
-
-
-mean_nospace = [1, 1.0019544567580916, 1.0048466612030817, 1.0077747240083905, 1.0114440126972846, 1.01453163538968, 1.0193864265190238]
-std_nospace = [0, 0.001190602265587861, 0.0020660448041190742, 0.001919840295559802, 0.002044382647466536, 0.0026854160615647506, 0.003976206551846917]'''
-
 def binarize(W, copy=True):
     '''
     Binarizes an input weighted connection matrix.  If copy is not set, this
@@ -544,8 +534,7 @@ for a in ax.flatten():
     a.spines.right.set_visible(False)
     a.spines.top.set_visible(False)
     a.grid(False)
-#ax[2].legend()
-#handles=list(ax[1:,:].flatten()), labels=["Non-spatial", "Spatial", "Spatial+cost"]
+
 fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=2, frameon=False)
 fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=3, frameon=False)
 plt.tight_layout(rect=[0, 0.05, 1, 1])
