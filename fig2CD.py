@@ -8,7 +8,7 @@ import matplotlib.gridspec as gridspec
 
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":8, "xtick.labelsize":8, "ytick.labelsize":8})
-sns.set_style("whitegrid", {"font.family":"sans-serif", "font.serif":"OpenSans"})
+sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
 
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
@@ -175,8 +175,7 @@ for i in range(4,8):
     center = channel_preferred_pos[:,0].squeeze().mean(), channel_preferred_pos[:,1].squeeze().mean()
     channel_preferred_pos[:,0] -= center[0]
     channel_preferred_pos[:,1] -= center[1]
-    #wbound, ebound = channel_preferred_pos[:,0].squeeze().min()-1, channel_preferred_pos[:,0].squeeze().max()+1
-    #sbound, nbound = channel_preferred_pos[:,1].squeeze().min()-1, channel_preferred_pos[:,1].squeeze().max()+1
+
     ax.flatten()[i+4].scatter(
         channel_preferred_pos[:,0],
         channel_preferred_pos[:,1],
