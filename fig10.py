@@ -6,7 +6,7 @@ import seaborn as sns
 
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":8, "xtick.labelsize":8, "ytick.labelsize":8})
-sns.set_style("whitegrid", {"font.family":"sans-serif", "font.serif":"OpenSans"})
+sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
 
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
@@ -27,7 +27,7 @@ checkpoint_nospace = "checkpoints_shd_nospace128_1.0_5e-12_0.5_"
 checkpoint_space = "checkpoints_space_cartesian128_2_1.0_5e-13_0.01_"
 
 
-fig, ax = plt.subplots(1, 1 ,figsize=(3.25, 2.5))
+fig, ax = plt.subplots(1, 1 ,figsize=(3.25, 2))
 
 
 
