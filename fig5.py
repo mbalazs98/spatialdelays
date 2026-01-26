@@ -6,13 +6,9 @@ from scipy.linalg import expm
 from scipy.spatial.distance import cdist
 import os
 import re
+import json
 
-from matplotlib.patches import Circle, RegularPolygon
-from matplotlib.path import Path
-from matplotlib.projections import register_projection
-from matplotlib.projections.polar import PolarAxes
-from matplotlib.spines import Spine
-from matplotlib.transforms import Affine2D
+
 
 
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
@@ -38,17 +34,26 @@ no_cost = []
 space_cost = []
 
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-10_0.05_1e-10_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_2_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-10_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_2_")
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-11_0.05_1e-09_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_2_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_5e-10_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-10_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-10_2_")
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-11_0.05_1e-08_0_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-09_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_2_")
+
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_5e-09_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-09_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-09_2_")
+
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-08_0_")
 no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_")
 space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_2_")
+
 
 ax = subfigs[0].subplots(1,3) 
 
@@ -84,7 +89,7 @@ print(f'Final modularity of no space network: {no_space_mods[-1]}\n')
 
 
 label = "Non-spatial"
-ax[0].errorbar(x=[1e-10, 1e-09, 1e-08], y=no_space_mods, yerr=no_space_mods_std, marker="o", markersize=3,
+ax[0].errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=no_space_mods, yerr=no_space_mods_std, marker="o", markersize=3,
             color=palette[1], label=label, capsize=2, linewidth=0.7)
 
 
@@ -113,7 +118,7 @@ for el in no_cost:
 print(f'Final modularity of no cost network: {no_cost_mods[-1]}\n')
 
 label = "Spatial"
-ax[0].errorbar(x=[1e-10, 1e-09, 1e-08], y=no_cost_mods, yerr=no_cost_mods_std, marker="o", markersize=3,
+ax[0].errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=no_cost_mods, yerr=no_cost_mods_std, marker="o", markersize=3,
             color=palette[0], label=label, capsize=2, linewidth=0.7)
 
 for el in space_cost:
@@ -140,7 +145,7 @@ for el in space_cost:
 print(f'Final modularity of space cost network: {space_cost_mods[-1]}\n')
 
 label = "Spatial+cost"
-ax[0].errorbar(x=[1e-10, 1e-09, 1e-08], y=space_cost_mods, yerr=space_cost_mods_std, marker="o", markersize=3,
+ax[0].errorbar(x=[1e-10, 5e-10,1e-09, 5e-09, 1e-08], y=space_cost_mods, yerr=space_cost_mods_std, marker="o", markersize=3,
             color=palette[3], label=label, capsize=2, linewidth=0.7)
 
 
@@ -242,8 +247,9 @@ for el in zip(no_space, no_cost, space_cost):
                         last_epoch = num
             if last_epoch < 299:
                 last_epoch -= 16
-            a = np.load(e+str(seed)+"/"+str(last_epoch)+"-Conn_Pop1_Pop1-g.npy")
-            max_val = max(max_val, np.max(np.abs(a)))
+            if last_epoch != -16:
+                a = np.load(e+str(seed)+"/"+str(last_epoch)+"-Conn_Pop1_Pop1-g.npy")
+                max_val = max(max_val, np.max(np.abs(a)))
 maxs = [max_val, max_val, max_val, max_val]
 print(maxs)
 
@@ -251,6 +257,7 @@ print(maxs)
 for el in space_cost:
     smws = []
     for seed in range(seeds):
+
         last_epoch = 0
         clunull, pthnull = 0, 0
         for filename in os.listdir(el+str(seed)):
@@ -267,7 +274,7 @@ for el in space_cost:
             np.random.shuffle(A)
             # Take null model
             clunull += np.mean(clustering_coef_wd(A.reshape(128, 128)))/50
-        
+    
         a = np.load(el+str(seed)+"/"+str(last_epoch)+"-Conn_Pop1_Pop1-g.npy").reshape(128, 128)
         A = np.abs(a)/np.max(np.abs(a))
         clu = np.mean(clustering_coef_wd(A))
@@ -275,7 +282,7 @@ for el in space_cost:
     space_cost_smws.append(np.mean(smws))
     space_cost_smws_std.append(np.std(smws))
 print(f'Final smallworldness of cost network: {space_cost_smws[-1]}\n')
-    
+
 for el in no_space:
     smws = []
     for seed in range(seeds):
@@ -295,7 +302,7 @@ for el in no_space:
             np.random.shuffle(A)
             # Take null model
             clunull += np.mean(clustering_coef_wd(A.reshape(128, 128)))/50
-        
+    
         a = np.load(el+str(seed)+"/"+str(last_epoch)+"-Conn_Pop1_Pop1-g.npy").reshape(128, 128)
         A = np.abs(a)/np.max(np.abs(a))
         clu = np.mean(clustering_coef_wd(A))
@@ -309,6 +316,8 @@ print(f'Final small worldness of no space network: {no_space_smws[-1]}\n')
 for el in no_cost:
     smws = []
     for seed in range(seeds):
+
+
         last_epoch = 0
         clunull = 0
         for filename in os.listdir(el+str(seed)):
@@ -335,13 +344,13 @@ for el in no_cost:
     print("No cost:", no_cost_smws[-1])
 print(f'Final smallworldness of no cost network: {no_cost_smws[-1]}\n')
 
-ax[1].errorbar(x=[1e-10, 1e-09, 1e-08], y=no_space_smws, yerr=no_space_smws_std, marker="o", markersize=3,
+ax[1].errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=no_space_smws, yerr=no_space_smws_std, marker="o", markersize=3,
             color=palette[1], label="Non-spatial", capsize=2, linewidth=0.7)
 
-ax[1].errorbar(x=[1e-10, 1e-09, 1e-08], y=no_cost_smws, yerr=no_cost_smws_std, marker="o", markersize=3,
+ax[1].errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=no_cost_smws, yerr=no_cost_smws_std, marker="o", markersize=3,
             color=palette[0], label="Spatial", capsize=2, linewidth=0.7)
 
-ax[1].errorbar(x=[1e-10, 1e-09, 1e-08], y=space_cost_smws, yerr=space_cost_smws_std, marker="o", markersize=3,
+ax[1].errorbar(x=[1e-10,5e-10, 1e-09, 5e-09, 1e-08], y=space_cost_smws, yerr=space_cost_smws_std, marker="o", markersize=3,
             color=palette[3], label='Spatial+cost', capsize=2, linewidth=0.7)
 
 ax[1].set_ylabel('Clustering')
@@ -349,17 +358,12 @@ ax[1].set_ylabel('Clustering')
 ax[1].text(-0.1, 1.1, "B", transform=ax[1].transAxes,
             fontsize=8, va='top', ha='left',fontweight='bold' )
 
-
-'''handles, labels = ax[2,0].get_legend_handles_labels()'''
-
-'''fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=3)'''
-
-
 space_wirings = []
 space_wirings_stds = []
 for el in space_cost:
     results = []
     for seed in range(seeds):
+
         last_epoch = 0
         for filename in os.listdir(el+str(seed)):
             match = pattern.match(filename)
@@ -384,6 +388,7 @@ no_space_wirings_stds = []
 for el in no_space:
     results = []
     for seed in range(seeds):
+
         last_epoch = 0
         for filename in os.listdir(el+str(seed)):
             match = pattern.match(filename)
@@ -408,6 +413,7 @@ no_cost_wirings_stds = []
 for el in no_cost:
     results = []
     for seed in range(seeds):
+
         last_epoch = 0
         for filename in os.listdir(el+str(seed)):
             match = pattern.match(filename)
@@ -427,35 +433,15 @@ for el in no_cost:
     no_cost_wirings.append(np.mean(results))
     no_cost_wirings_stds.append(np.std(results))
 
-ax[0].axhline(0.4967, color='grey', linestyle='--', linewidth=0.5)
-
-# Add text label slightly above the line
-ax[0].text(
-    3e-10, 0.5167,                # x, y position in data coordinates
-    "Human",
-    fontsize=6,
-    #verticalalignment='bottom'
-)
-
-# Add dashed horizontal line at y=2.5
-ax[1].axhline(1.59, color='grey', linestyle='--', linewidth=0.5)
-
-# Add text label slightly above the line
-ax[1].text(
-    3e-09, 1.64,                # x, y position in data coordinates
-    "Macaque",
-    fontsize=6,
-    #verticalalignment='bottom'
-)
 
 
-ax[2].errorbar(x=[1e-10, 1e-09, 1e-08], y=[1-no_space_wiring for no_space_wiring in no_space_wirings], yerr=no_space_wirings_stds, marker="o", markersize=3,
+ax[2].errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=[1-no_space_wiring for no_space_wiring in no_space_wirings], yerr=no_space_wirings_stds, marker="o", markersize=3,
             color=palette[1], label="Non-spatial", capsize=2, linewidth=0.7)
 
-ax[2].errorbar(x=[1e-10, 1e-09, 1e-08], y=[1-no_cost_wiring for no_cost_wiring in no_cost_wirings], yerr=no_cost_wirings_stds, marker="o", markersize=3,
+ax[2].errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=[1-no_cost_wiring for no_cost_wiring in no_cost_wirings], yerr=no_cost_wirings_stds, marker="o", markersize=3,
             color=palette[0], label="Spatial", capsize=2, linewidth=0.7)
 
-ax[2].errorbar(x=[1e-10, 1e-09, 1e-08], y=[1-space_wiring for space_wiring in space_wirings], yerr=space_wirings_stds, marker="o", markersize=3,
+ax[2].errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=[1-space_wiring for space_wiring in space_wirings], yerr=space_wirings_stds, marker="o", markersize=3,
             color=palette[3], label='Spatial+cost', capsize=2, linewidth=0.7)
 
 ax[2].set_ylabel('Wiring efficiency')
