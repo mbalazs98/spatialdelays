@@ -19,28 +19,30 @@ seeds = 20
 pattern = re.compile(r"^(\d+)-")
 fig, ax = plt.subplots(1,1,figsize=(3.25, 2))
 
-
 no_space = []
 no_cost = []
 space_cost = []
 
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-10_0.05_1e-10_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_2_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-10_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_2_")
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-11_0.05_1e-09_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_2_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_5e-10_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-10_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-10_2_")
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-11_0.05_1e-08_0_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-09_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_2_")
+
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_5e-09_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-09_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-09_2_")
+
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-08_0_")
 no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_")
 space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_2_")
-
-
-'''no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-07_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-07_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-07_2_")'''
 
 def invert(W, copy=True):
     '''
@@ -240,14 +242,14 @@ print(f'Final smallworldness of no cost network: {no_cost_smws[-1]}\n')
 
 
 
-ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=no_space_smws, yerr=no_space_smws_std,  marker='o', markersize=4,
+ax.errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=no_space_smws, yerr=no_space_smws_std,  marker='o', markersize=4,
             color=palette[1], label="Non-spatial", capsize=3, linewidth=0.7)
 
-ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=no_cost_smws, yerr=no_cost_smws_std,  marker='o', markersize=4,
+ax.errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=no_cost_smws, yerr=no_cost_smws_std,  marker='o', markersize=4,
             color=palette[0], label="Spatial", capsize=3, linewidth=0.7)
 
 
-ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=space_cost_smws, yerr=space_cost_smws_std,  marker='o', markersize=4,
+ax.errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=space_cost_smws, yerr=space_cost_smws_std,  marker='o', markersize=4,
             color=palette[3], label="Spatial+cost", capsize=3, linewidth=0.7)
 ax.set_xscale("log")
 
