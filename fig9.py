@@ -3,11 +3,10 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import re
 sns.set(context="paper", rc={"font.size":8, "axes.labelsize":8, "axes.titlesize": 9,
                                  "legend.fontsize":8, "xtick.labelsize":8, "ytick.labelsize":8})
 sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
-
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
 
@@ -18,13 +17,11 @@ sns.set_palette("deep")
 results_dir = 'results_pos'
 
 data = []
+pattern = re.compile(r"^(\d+)-")
 palette = sns.color_palette("deep")
-nospace_full = "acc_nospace_128_1.0_5e-12_0.5_"
-space_full = "acc_pos_cartesian_128_2_1.0_5e-13_0.01_"
-nospace_prune = "prune_nospace_128_1.0_5e-12_0.5_"
-space_prune = "prune_pos_cartesian128_2_1.0_5e-13_0.01_"
-checkpoint_nospace = "checkpoints_shd_nospace128_1.0_5e-12_0.5_"
-checkpoint_space = "checkpoints_space_cartesian128_2_1.0_5e-13_0.01_"
+
+checkpoint_nospace = "checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_0.0_0_"
+checkpoint_space = "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_0.0_0_"
 
 
 fig, ax = plt.subplots(1, 1 ,figsize=(3.25, 2))
@@ -128,7 +125,17 @@ for percentage in percentages:
     # Take the average of the nulls
     pthnull = np.mean(pthperm)
     for i in range(20):
-        d = np.load(checkpoint_space+ str(i)+ "/best-Conn_Pop1_Pop1-d.npy").reshape(128,128)
+        last_epoch = 0
+
+        for filename in os.listdir(checkpoint_space+ str(i)):
+            match = pattern.match(filename)
+            if match:
+                num = int(match.group(1))  # Convert to integer
+                if num > last_epoch:
+                    last_epoch = num
+        if last_epoch < 299:
+            last_epoch -= 16
+        d = np.load(checkpoint_space+ str(i)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy").reshape(128,128)
         #print(np.percentile(np.abs(d), 95))
         A = d < np.percentile(np.abs(d), percentage)
         # Compute the small worldness
@@ -164,7 +171,17 @@ for percentage in percentages:
     # Take the average of the nulls
     pthnull = np.mean(pthperm)
     for i in range(20):
-        d = np.load(checkpoint_nospace+ str(i)+ "/best-Conn_Pop1_Pop1-d.npy").reshape(128,128)
+        last_epoch = 0
+
+        for filename in os.listdir(checkpoint_nospace+ str(i)):
+            match = pattern.match(filename)
+            if match:
+                num = int(match.group(1))  # Convert to integer
+                if num > last_epoch:
+                    last_epoch = num
+        if last_epoch < 299:
+            last_epoch -= 16
+        d = np.load(checkpoint_nospace+ str(i)+ "/"+str(last_epoch)+"-Conn_Pop1_Pop1-d.npy").reshape(128,128)
         #print(np.percentile(np.abs(d), 95))
         A = d < np.percentile(np.abs(d), percentage)
         # Compute the small worldness
