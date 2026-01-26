@@ -26,15 +26,23 @@ no_cost = []
 space_cost = []
 
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-10_0.05_1e-10_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_2_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-10_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_2_")
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-11_0.05_1e-09_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_2_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_5e-10_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-10_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-10_2_")
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-11_0.05_1e-08_0_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-09_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_2_")
+
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_5e-09_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-09_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_5e-09_2_")
+
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-08_0_")
 no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_")
 space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_2_")
 
@@ -83,7 +91,7 @@ print(f'Final shannon of no space network: {no_space_ent[-1]}\n')
 
 
 label = "Non-spatial"
-ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=no_space_ent, yerr=no_space_ent_std, marker="o", markersize=4,
+ax.errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=no_space_ent, yerr=no_space_ent_std, marker="o", markersize=4,
             color=palette[1], label=label, capsize=2, linewidth=0.7)
 
 
@@ -107,7 +115,7 @@ for el in no_cost:
 print(f'Final shannon of no cost network: {no_cost_ent[-1]}\n')
 
 label = "Spatial"
-ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=no_cost_ent, yerr=no_cost_ent_std, marker="o", markersize=4,
+ax.errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=no_cost_ent, yerr=no_cost_ent_std, marker="o", markersize=4,
             color=palette[0], label=label, capsize=2, linewidth=0.7)
 
 
@@ -131,7 +139,7 @@ for el in space_cost:
 print(f'Final shannon of space cost network: {space_cost_ent[-1]}\n')
 
 label = "Spatial+cost"
-ax.errorbar(x=[1e-10, 1e-09, 1e-08], y=space_cost_ent, yerr=space_cost_ent_std, marker="o", markersize=4,
+ax.errorbar(x=[1e-10, 5e-10, 1e-09, 5e-09, 1e-08], y=space_cost_ent, yerr=space_cost_ent_std, marker="o", markersize=4,
             color=palette[3], label=label, capsize=2, linewidth=0.7)
 
 
@@ -158,4 +166,4 @@ fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=
 plt.tight_layout(rect=[0, 0.07, 1, 1])
 fig.subplots_adjust(top=0.93)
 
-plt.savefig("shd_cent.pdf") #76.19, 76.68, 79.20
+plt.savefig("shd_cent.pdf")
