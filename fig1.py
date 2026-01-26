@@ -19,6 +19,13 @@ sns.set_style("whitegrid", {"font.family":"serif", "font.serif":"Times"})
 # **HACK** fix bug with markers
 sns.set_context(rc={"lines.markeredgewidth": 1.0})
 
+mpl.rcParams.update({
+    "mathtext.fontset": "stix",
+    "mathtext.rm": "Times",
+    "mathtext.it": "Times:italic",
+    "mathtext.bf": "Times:bold",
+})
+
 palette = sns.color_palette("deep")
 
 fig = plt.figure(figsize=(6.75, 2.1), constrained_layout=True)
@@ -27,7 +34,7 @@ gs2 = GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[0,1], height_ratios=[1, 1])
 gs3 = GridSpecFromSubplotSpec(1, 2, subplot_spec=gs2[0,0],wspace=0.01)
 
 ax1 = fig.add_subplot(gs[0, 0], projection="3d")
-#ax2 = fig.add_subplot(gs[0, 1])
+
 ax3 = fig.add_subplot(gs[0, 2])
 
 
@@ -67,7 +74,7 @@ def draw_axis_arrows(ax, origin=(0, 0, 0),
             arrow_length_ratio=0.15
         )
 
-    ax.text(x0+3, y0 - space_len-0.5, z0, "Space", ha="left")
+    ax.text(x0+6, y0 - space_len-0.5, z0, "Space", ha="left")
 
 
 def plot_cone(ax, x0, y0, z0, z_max,
@@ -100,6 +107,7 @@ def plot_cone(ax, x0, y0, z0, z_max,
 # -----------------------------
 neurons = {
     "a": (0-3, 0-2),
+    #"b": (0, 5),
     "b": (10-3, 5-2),
     "c": (2.37, 17.27),
 }
@@ -152,10 +160,14 @@ for x0, y0, z0 in spikes:
         ax1.scatter(x0, y0, z0, color=palette[8], s=50, marker="*", edgecolor="black", linewidth=0.5)
     else:
         ax1.scatter(x0, y0, z0, color=palette[8], s=50, marker="*", edgecolor="black", linewidth=0.5)
-    
+
+
 
 
 ax1.set_zlim(0, z_max)
+
+
+
 
 z_obs = z_max
 def draw_wavefront_circle(ax, x0, y0, z0, z_obs,
@@ -267,6 +279,7 @@ for curr_zobs in range(5, (int(z_max)+1)):
                 ys2.append(pts[1][1])
                 zs.append(curr_zobs)
 
+    
 xs1.insert(0, xs2[0])
 xs2.insert(0, xs1[0])
 zs.insert(0, zs[0])
@@ -288,7 +301,49 @@ ax1.set_zticks([])
 ax1.w_xaxis.line.set_color((0, 0, 0, 0))
 ax1.w_yaxis.line.set_color((0, 0, 0, 0))
 ax1.w_zaxis.line.set_color((0, 0, 0, 0))
-# hide pane edges and grid lines
+
+def draw_observation_projections(ax, x0, y0, z0, z_obs,
+                                 color="grey", lw=0.3, alpha=0.2, linestyle="--"):
+    r = z_obs - z0
+    if r <= 0:
+        return
+
+    z = z_obs
+
+    # x-direction line
+    ax.plot(
+        [x0 - r, x0 + r],
+        [y0, y0],
+        [z, z],
+        color=color,
+        linewidth=lw,
+        alpha=alpha,
+        zorder=4,
+        linestyle=linestyle
+    )
+
+    # y-direction line
+    ax.plot(
+        [x0, x0],
+        [y0 - r, y0 + r],
+        [z, z],
+        color=color,
+        linewidth=lw,
+        alpha=alpha,
+        zorder=4,
+        linestyle=linestyle
+    )
+
+
+for x0, y0, z0 in spikes[:2]:
+    draw_observation_projections(
+        ax1,
+        x0, y0, z0,
+        z_obs,
+        color="black"
+        
+    )
+
 star_proxy = Line2D([], [], marker='*', linestyle='None', markersize=7,
                     markerfacecolor=palette[8], markeredgecolor='black', linewidth=0.1)
 neuron_pos = Line2D([], [], marker='.', linestyle='None', markersize=7,
@@ -304,10 +359,10 @@ for i, data in enumerate(dataset):
 
 
 
-
 ax_in = fig.add_subplot(gs3[0, 0])   # input spikes
 ax_net = fig.add_subplot(gs3[0, 1])  # network
 ax_out = fig.add_subplot(gs2[1, 0])  # output
+# Example: replace with your real data
 t = raw_dataset[0][0]["t"] / 1000.0
 x = raw_dataset[0][0]["x"]
 
@@ -320,26 +375,33 @@ ax_in.grid(False)
 ax_in.set_xticklabels([])
 ax_in.set_yticklabels([])
 
-N = 32
+N = 30
 r = np.sqrt(np.random.uniform(0, 0.9, N))  # radius sqrt for uniform density
 theta = np.random.uniform(0, 2*np.pi, N)
 x = r * np.cos(theta)
 y = r * np.sin(theta)
+
+# --- Two fixed neurons (lower-left, slightly separated) ---
+fixed_points = np.array([
+    [0.65, -0.75],  # more left & lower  → should be first index
+    [0.8, -0.63],  # slightly right & higher → second index
+])
+
+x_fixed = fixed_points[:, 0]
+y_fixed = fixed_points[:, 1]
+
+# --- Combine ---
+x = np.concatenate([x, x_fixed])
+y = np.concatenate([y, y_fixed])
 positions = (x, y)
+
+
 ax_in.set_ylabel("Channels", labelpad=-6) 
 ax_in.set_xlabel("Time", labelpad=-6) 
 
-y_vals = positions[1]
-threshold = np.percentile(y_vals, 2)  # bottom half
-candidates = np.where(y_vals < threshold)[0]
-if len(candidates) >= 2:
-    xs_candidates = positions[0][candidates]
-    left_idx = candidates[np.argmin(xs_candidates)]
-    right_idx = candidates[np.argmax(xs_candidates)]
-    idxs = np.array([left_idx, right_idx])
-else:
-    # fallback: pick two points with smallest y (deterministic)
-    idxs = np.argsort(y_vals)[:2]
+
+idxs = np.array([30, 31])
+
 ax_net.scatter(positions[0], positions[1], s=5, color=palette[0])
 highlight_radius = 0.06
 
@@ -355,8 +417,6 @@ for idx in idxs:
     ax_net.add_patch(circ)
 
 ax_net.set_aspect("equal")
-
-
 ax_net.spines.right.set_visible(False)
 ax_net.spines.top.set_visible(False)
 ax_net.grid(False)
@@ -366,7 +426,15 @@ ax_net.set_xlabel("x", labelpad=-6)
 ax_net.set_ylabel("y", labelpad=-6)
 
 
+def data_to_fig(ax, fig, x, y):
+    disp = ax.transData.transform((x, y))
+    return fig.transFigure.inverted().transform(disp)
+
+
 bbox_net = ax_net.get_position()
+
+style = ArrowStyle('Fancy', head_length=1, head_width=3, tail_width=0.5)
+
 
 
 # --- Define Neuron Positions ---
@@ -399,7 +467,6 @@ conn_color = 'gray'
 
 # --- 1. Draw Neurons i and j ---
 # Neuron i
-
 ax_out.scatter(
     [xi], [yi],
     s=400,
@@ -482,6 +549,7 @@ ax_out.text(xi+0.25, yi + update_y/2+0.25, label_y,
         color=grad_color, ha='right', va='center',
         bbox=dict(facecolor='white', edgecolor='none', alpha=1, pad=2))
 
+
 # Set plot limits with padding
 ax_out.set_xlim(xi - 0.7, xj + 0.2)
 ax_out.set_ylim(yi - .2, yj + .2)
@@ -511,6 +579,8 @@ for src_idx, (tx, ty) in zip(idxs, targets):
         zorder=2
     )
     fig.add_artist(con)
+
+from scipy.spatial import ConvexHull
 
 last_epoch = 175
 dirs = "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_18/"
@@ -543,6 +613,7 @@ for i in range(len(Xposes)):
 
 
 
+
 ax3.scatter(last_XPos, last_YPos, c=palette[0], s=5)
 # Add a colorbar to indicate epoch progression for the hull/trajectory points
 # use the same colormap and normalization used when plotting the intermediate poses
@@ -572,4 +643,5 @@ ax_out.text(-0.1, 1.1, "D", transform=ax_out.transAxes,
             fontsize=8, va='top', ha='left',fontweight='bold' )
 ax3.text(-0.1, 1.1, "E", transform=ax3.transAxes,
             fontsize=8, va='top', ha='left',fontweight='bold' )
+
 plt.savefig("introfig.pdf", dpi=300)
