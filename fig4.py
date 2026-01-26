@@ -30,13 +30,13 @@ fig = plt.figure(figsize=(6.75,3.3) , constrained_layout=True)
 subfigs = fig.subfigures(3, 1, height_ratios=[2.2, 1.3, 0.2])
 
 dirs = [
-    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_18/176",
-    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_2_3/175",
-    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_0_4/299",
-    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_2_7/200",
+    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_9/166",
+    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_2_8/129",
+    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_0_18/123",
+    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_2_15/163",
     "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_5/299",
     "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_2_9/299",
-    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-07_0_10/299",
+    "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-07_2_3/299",
     "checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-07_2_3/299",
 ]
 
@@ -76,7 +76,7 @@ for i, _dir in enumerate(dirs[7:]):
 
 abs_max = max(maxs)
 maxs = [abs_max, abs_max, abs_max, abs_max]
-
+print(abs_max)
 ind=-1
 ax = subfigs[0].subplots(1,4) 
 titles = [
@@ -105,8 +105,8 @@ for i, _dir in enumerate(dirs):
     if i != 6:
         for pre in range(128):
             for post in range(128):
-                ax[ind].plot([XPos[pre], XPos[post]], [YPos[pre], YPos[post]], c=palette[colour], linewidth=0.1, alpha=w[pre,post])
-        ax[ind].scatter(XPos, YPos, s=1, c=palette[colour], alpha=0.4)
+                ax[ind].plot([XPos[pre], XPos[post]], [YPos[pre], YPos[post]], c=palette[colour], linewidth=0.1, alpha=w[pre,post], rasterized=True)
+        ax[ind].scatter(XPos, YPos, s=1, c=palette[colour], alpha=0.4, rasterized=True)
         ax[ind].set_xlim(-maxs[ind], maxs[ind])
         ax[ind].set_ylim(-maxs[ind], maxs[ind])
         ax[ind].spines.right.set_visible(False)
@@ -116,37 +116,37 @@ for i, _dir in enumerate(dirs):
         if ind == 0:
             ax[ind].set_yticks([-500, 0, 500])
             ax[ind].set_yticklabels([-500, 0, 500])
-            ax[ind].set_ylabel('Y')
-            ax[ind].set_xlabel('X')
+            ax[ind].set_ylabel('y')
+            ax[ind].set_xlabel('x')
         else:
             ax[ind].set_yticks([-500, 0, 500])
             ax[ind].set_yticklabels([])
-            ax[ind].set_xlabel('X')
+            ax[ind].set_xlabel('x')
 
         ax[ind].set_title(titles[ind], fontweight='bold')
-'''
+
 
 ax[0].text(-0.1, 1.1, "A", transform=ax[0].transAxes,
-            fontsize=8, va='top', ha='left',fontweight='bold' )'''
+            fontsize=8, va='top', ha='left',fontweight='bold' )
 
+
+plt.savefig("shd_reg.png")
 
 no_space = []
 no_cost = []
 space_cost = []
 
-'''no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_0.0_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_0.0_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_0.0_0_")'''
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-10_0.05_1e-10_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_2_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-10_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_2_")
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-11_0.05_1e-09_0_")
-no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_0_")
-space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-09_2_")
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-09_0_")
+no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_0_")
+space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-09_2_")
 
-no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-11_0.05_1e-08_0_")
+
+no_space.append("checkpoints_space_cartesian_nolimit_dynamic_128_0_5e-13_0.05_1e-08_0_")
 no_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_")
 space_cost.append("checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_2_")
 
@@ -348,8 +348,8 @@ for i, a in enumerate(ax):
     a.spines.top.set_visible(False)
     a.grid(False)
 
-'''ax[0].text(-0.1, 1.1, "B", transform=ax[0].transAxes,
-            fontsize=8, va='top', ha='left',fontweight='bold' )'''
+ax[0].text(-0.1, 1.1, "B", transform=ax[0].transAxes,
+            fontsize=8, va='top', ha='left',fontweight='bold' )
 
 ax[0].set_ylabel('Weighted count')
 
@@ -363,5 +363,4 @@ subfigs[-1].legend(
     frameon=False
 )
 
-
-plt.savefig("shd_reg.pdf")
+plt.savefig("shd_reg.pdf", dpi=600)
