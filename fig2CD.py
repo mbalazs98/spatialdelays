@@ -30,15 +30,15 @@ positions = [a.get_position() for a in ax[0]]
 
 dirs = [
     "",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_18/50-",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_18/100-",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_18/150-",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_18/50-",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_18/100-",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_18/150-",
 
 
     "",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-08_0_0/50-",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-08_0_0/100-",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-08_0_0/150-",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_0/50-",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_0/100-",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_0/150-",
 ]
 
 maxs = -np.inf
@@ -111,16 +111,16 @@ plt.tight_layout()
 plt.subplots_adjust(hspace=0.6)
 
 dirs2 = [
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_2_3/",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_18/",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_18/",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_0_18/",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_2_3/",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_18/",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_18/",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_0_18/",
 
 
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-10_2_3/",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-08_0_0/",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-08_0_0/",
-    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-10_0.05_1e-08_0_0/",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-10_2_3/",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_0/",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_0/",
+    "nolimitnets/checkpoints_space_cartesian_nolimit_dynamic_128_2_5e-13_0.05_1e-08_0_0/",
 ]
 e = [0, 50, 100, 150, 0, 50, 100, 150]
 for i in range(4,8):
