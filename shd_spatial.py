@@ -11,7 +11,7 @@ from ml_genn.neurons import LeakyIntegrate, LeakyIntegrateFire, SpikeInput
 from ml_genn.optimisers import Adam
 from ml_genn.serialisers import Numpy
 from ml_genn.synapses import Exponential
-from tonic.datasets import SHD
+from tonic.datasets import SHD #SMNIST, NTIDIGITS18
 
 from time import perf_counter
 from ml_genn.utils.data import (calc_latest_spike_time, calc_max_spikes,
@@ -43,7 +43,7 @@ NUM_HIDDEN = args.num_hidden
 BATCH_SIZE = 256
 NUM_EPOCHS = 300
 DT = 1.0
-
+AUGMENT = True # if dataset is not SHD, set to false
 
 
 np.random.seed(args.seed)
@@ -63,7 +63,6 @@ class EaseInSchedule(Callback):
             self._optimiser.alpha = (self._optimiser.alpha) * (1.05 ** batch)
         else:
             self._optimiser.alpha = 0.001
-
 
 class Shift:
     def __init__(self, f_shift, sensor_size):
@@ -126,7 +125,7 @@ class Blend:
 
 
 
-dataset = SHD(save_to="../data", train=True)
+dataset = SHD(save_to="../data", train=True) #SMNIST(save_to="../data", train=True), NTIDIGITS18(save_to="../data", train=True, single_digits=True)
 num_input = int(np.prod(dataset.sensor_size))
 num_output = len(dataset.classes)
 shift = Shift(40, dataset.sensor_size)
@@ -135,26 +134,25 @@ blend = Blend(0.5, dataset.sensor_size)
 
 max_spikes = 0
 latest_spike_time = 0
-raw_dataset = []
-classes = [[] for _ in range(20)]
-for i, data in enumerate(dataset):
-    events, label = data
-    events = np.delete(events, np.where(events["t"] >= 1000000))
-    classes[label].append(len(raw_dataset))
-    raw_dataset.append((events, label))
-    
-    # Calculate max spikes and max times
-    max_spikes = max(max_spikes, len(events))
-    latest_spike_time = max(latest_spike_time, np.amax(events["t"]) / 1000.0)
- 
+if AUGMENT:
+  raw_dataset = []
+  classes = [[] for _ in range(20)]
+  for i, data in enumerate(dataset):
+      events, label = data
+      classes[label].append(len(raw_dataset))
+      raw_dataset.append((events, label))
+      
+      # Calculate max spikes and max times
+      max_spikes = max(max_spikes, len(events))
+      latest_spike_time = max(latest_spike_time, np.amax(events["t"]) / 1000.0)
+   
 
-dataset = SHD(save_to="../data", train=False)
+dataset = SHD(save_to="../data", train=False)  #SMNIST(save_to="../data", train=False), NTIDIGITS18(save_to="../data", train=True, single_digits=False)
 
 spikes_test = []
 labels_test = []
 for i in range(len(dataset)):
     events, label = dataset[i]
-    events = np.delete(events, np.where(events["t"] >= 1000000))
     spikes_test.append(preprocess_tonic_spikes(events, dataset.ordering,
                                             dataset.sensor_size))
     labels_test.append(label)
@@ -234,14 +232,15 @@ with compiled_net:
     best_e, best_acc = 0, 0
     early_stop = 15
     for e in range(NUM_EPOCHS):
-        # Apply augmentation to events and preprocess
-        spikes_train = []
-        labels_train = []
-        blended_dataset = blend(copy.deepcopy(raw_dataset), classes)
-        for events, label in blended_dataset:
-            spikes_train.append(preprocess_tonic_spikes(shift(events), dataset.ordering,
-                                                    dataset.sensor_size))
-            labels_train.append(label)
+        if AUGMENT:
+          # Apply augmentation to events and preprocess
+          spikes_train = []
+          labels_train = []
+          blended_dataset = blend(copy.deepcopy(raw_dataset), classes)
+          for events, label in blended_dataset:
+              spikes_train.append(preprocess_tonic_spikes(shift(events), dataset.ordering,
+                                                      dataset.sensor_size))
+              labels_train.append(label)
 
 
         # Train epoch
